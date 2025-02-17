@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0">
+        <div class="h-full px-3 py-4 overflow-y-auto bg-white dark:bg-gray-800">
+            <div class="flex items-center mb-5">
+                <span class="text-2xl font-semibold text-gray-800 dark:text-white">Dashboard</span>
+            </div>
+            <ul class="space-y-2">
+                <li>
+                    <button data-tab="campaigns" class="tab-btn flex items-center w-full p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                        <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/>
+                        </svg>
+                        <span class="ml-3">Campaigns</span>
+                    </button>
+                </li>
+                <li>
+                    <button data-tab="analytics" class="tab-btn flex items-center w-full p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                        <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span class="ml-3">Analytics</span>
+                    </button>
+                </li>
+                <li>
+                    <button data-tab="settings" class="tab-btn flex items-center w-full p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                        <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span class="ml-3">Settings</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="p-4 sm:ml-64">
+        <!-- Top bar -->
+        <div class="flex justify-between items-center mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <div class="flex items-center">
+                <button id="sidebar-toggle" class="sm:hidden text-gray-500 dark:text-gray-400 mr-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                <div class="flex space-x-4">
+                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                        <span class="font-medium">Active Campaigns:</span> 
+                        <span class="ml-1">12</span>
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                        <span class="font-medium">Total Leads:</span> 
+                        <span class="ml-1">1,234</span>
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                        <span class="font-medium">Success Rate:</span> 
+                        <span class="ml-1">67%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="theme-toggle" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+                    <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                    </svg>
+                    <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+
+        <!-- Tab content -->
+        <div id="campaigns" class="tab-content">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">New Drip Campaign</h2>
+                <div class="mb-6">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Upload Leads Excel File</label>
+                    <div class="flex items-center justify-center w-full">
+                        <label for="excel-upload" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">XLSX or XLS files only</p>
+                            </div>
+                            <div id="file-name" class="hidden mt-2 text-sm text-gray-500 dark:text-gray-400"></div>
+                            <input id="excel-upload" type="file" class="hidden" accept=".xlsx,.xls" />
+                        </label>
+                    </div>
+                </div>
+                <div id="campaign-actions" class="mb-4 hidden">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <button id="select-all" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Select All</button>
+                            <span id="selected-count" class="text-sm text-gray-600 dark:text-gray-400">0 leads selected</span>
+                        </div>
+                        <button id="start-campaign" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors">
+                            Start Campaign
+                        </button>
+                    </div>
+                </div>
+
+                <div id="leads-skeleton" class="hidden">
+                    <div class="animate-pulse space-y-4">
+                        <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                        <div class="space-y-3">
+                            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="leads-table" class="overflow-x-auto hidden">
+                    <!-- Table will be populated by JavaScript -->
+                </div>
+
+                <div id="campaign-preview" class="hidden mt-6">
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Campaign Preview</h3>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Campaign Name</label>
+                                    <input type="text" class="w-full p-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white" placeholder="Enter campaign name">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Send Date</label>
+                                    <input type="datetime-local" class="w-full p-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Template</label>
+                                <select class="w-full p-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white">
+                                    <option value="template1">Medical Device Introduction</option>
+                                    <option value="template2">Product Demo Request</option>
+                                    <option value="template3">Follow-up Meeting</option>
+                                </select>
+                            </div>
+                            <div id="email-preview" class="border rounded-lg p-4 bg-white dark:bg-gray-800 dark:border-gray-600">
+                                <div class="mb-2 text-sm text-gray-600 dark:text-gray-400">Preview:</div>
+                                <div class="prose dark:prose-invert max-w-none">
+                                    <p>Dear [Company Name],</p>
+                                    <p>I hope this email finds you well. I'm reaching out because I noticed your company's impressive work in the medical device industry, particularly with your revenue range of $10M-$50M.</p>
+                                    <p>Would you be interested in learning more about how our solutions can help optimize your operations and potentially increase your EBITDA beyond the current 20%?</p>
+                                    <p>Best regards,<br>[Sender Name]</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-end space-x-4">
+                                <button class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">Save Draft</button>
+                                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Send Campaign</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="analytics" class="tab-content hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Analytics Dashboard</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded-lg">
+                        <h3 class="font-semibold text-blue-800 dark:text-blue-200">Total Leads</h3>
+                        <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">1,234</p>
+                    </div>
+                    <div class="bg-green-100 dark:bg-green-900 p-4 rounded-lg">
+                        <h3 class="font-semibold text-green-800 dark:text-green-200">Conversion Rate</h3>
+                        <p class="text-2xl font-bold text-green-900 dark:text-green-100">23.5%</p>
+                    </div>
+                    <div class="bg-purple-100 dark:bg-purple-900 p-4 rounded-lg">
+                        <h3 class="font-semibold text-purple-800 dark:text-purple-200">Active Campaigns</h3>
+                        <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">5</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings" class="tab-content hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Settings</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email Notifications</label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Enable email notifications</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Language</label>
+                        <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle
+        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+        const themeToggleBtn = document.getElementById('theme-toggle');
+
+        // Change the icons inside the button based on previous settings
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            themeToggleLightIcon.classList.remove('hidden');
+            document.documentElement.classList.add('dark');
+        } else {
+            themeToggleDarkIcon.classList.remove('hidden');
+            document.documentElement.classList.remove('dark');
+        }
+
+        themeToggleBtn.addEventListener('click', function() {
+            // Toggle icons
+            themeToggleDarkIcon.classList.toggle('hidden');
+            themeToggleLightIcon.classList.toggle('hidden');
+
+            // If is set in localStorage
+            if (localStorage.getItem('color-theme')) {
+                if (localStorage.getItem('color-theme') === 'light') {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                }
+            } else {
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                }
+            }
+        });
+
+        // Sidebar toggle
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('sidebar');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+        });
+
+        // Tab switching
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                
+                // Hide all tab contents
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                // Show selected tab content
+                document.getElementById(tabId).classList.remove('hidden');
+                
+                // Update active state of tab buttons
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('bg-gray-100', 'dark:bg-gray-700');
+                });
+                button.classList.add('bg-gray-100', 'dark:bg-gray-700');
+            });
+        });
+
+
+// File handling state
+let currentFile = null;
+let selectedLeads = new Set();
+
+// DOM Elements
+const dropZone = document.querySelector('label[for="excel-upload"]');
+const fileInput = document.getElementById('excel-upload');
+const fileNameDisplay = document.getElementById('file-name');
+const leadsTable = document.getElementById('leads-table');
+const campaignActions = document.getElementById('campaign-actions');
+const leadsSkeleton = document.getElementById('leads-skeleton');
+const campaignPreview = document.getElementById('campaign-preview');
+
+// File handling functions
+function handleFileSelection(file) {
+    if (!isValidExcelFile(file)) {
+        showError('Please upload a valid Excel file (XLSX or XLS)');
+        resetFileInput();
+        return;
+    }
+
+    currentFile = file;
+    updateUIForFileSelection(file);
+    processExcelFile(file);
+}
+
+function isValidExcelFile(file) {
+    const validExtensions = ['xlsx', 'xls'];
+    const extension = file.name.split('.').pop().toLowerCase();
+    return validExtensions.includes(extension);
+}
+
+function updateUIForFileSelection(file) {
+    // Update file name display
+    fileNameDisplay.textContent = file.name;
+    fileNameDisplay.classList.remove('hidden');
+
+    // Update drop zone appearance
+    dropZone.classList.add('border-green-500', 'bg-green-50', 'dark:bg-gray-600');
+    const uploadText = dropZone.querySelector('p');
+    if (uploadText) {
+        uploadText.textContent = `File selected: ${file.name}`;
+    }
+
+    // Reset UI after animation
+    setTimeout(() => {
+        dropZone.classList.remove('border-green-500', 'bg-green-50', 'dark:bg-gray-600');
+    }, 2000);
+}
+
+function resetFileInput() {
+    fileInput.value = '';
+    fileNameDisplay.classList.add('hidden');
+    currentFile = null;
+    resetTableUI();
+}
+
+function resetTableUI() {
+    leadsSkeleton.classList.add('hidden');
+    leadsTable.classList.add('hidden');
+    campaignActions.classList.add('hidden');
+    campaignPreview.classList.add('hidden');
+    selectedLeads.clear();
+    updateSelectedCount();
+}
+
+function showError(message) {
+    // You could implement a proper error notification system here
+    alert(message);
+}
+
+// Excel processing
+async function processExcelFile(file) {
+    showLoadingState();
+    
+    try {
+        const arrayBuffer = await readFileAsArrayBuffer(file);
+        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+        
+        // Get first worksheet
+        const worksheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[worksheetName];
+        
+        // Convert to JSON
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        if (jsonData.length === 0) {
+            throw new Error('No data found in the Excel file');
+        }
+        
+        createLeadsTable(jsonData);
+    } catch (error) {
+        showError('Error processing Excel file: ' + error.message);
+        resetFileInput();
+    } finally {
+        hideLoadingState();
+    }
+}
+
+function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(new Error('Error reading file'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+function showLoadingState() {
+    leadsSkeleton.classList.remove('hidden');
+    leadsTable.classList.add('hidden');
+    campaignPreview.classList.add('hidden');
+    campaignActions.classList.add('hidden');
+}
+
+function hideLoadingState() {
+    leadsSkeleton.classList.add('hidden');
+}
+
+// Selection handling
+function setupSelectionHandling() {
+    const selectAllBtn = document.getElementById('select-all');
+    const startCampaignBtn = document.getElementById('start-campaign');
+
+    // Select All button functionality
+    selectAllBtn.addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll('.lead-checkbox');
+        const isSelectingAll = selectAllBtn.textContent === 'Select All';
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = isSelectingAll;
+            const index = parseInt(checkbox.dataset.index);
+            if (isSelectingAll) {
+                selectedLeads.add(index);
+            } else {
+                selectedLeads.delete(index);
+            }
+        });
+        
+        updateSelectedCount();
+        selectAllBtn.textContent = isSelectingAll ? 'Deselect All' : 'Select All';
+        updateHeaderCheckbox(isSelectingAll);
+    });
+
+    // Enable/disable start campaign button based on selection
+    function updateStartCampaignButton() {
+        startCampaignBtn.disabled = selectedLeads.size === 0;
+    }
+
+    // Observe selected leads changes
+    const updateUI = () => {
+        const selectedCountElement = document.getElementById('selected-count');
+        if (selectedCountElement) {
+            selectedCountElement.textContent = `${selectedLeads.size} leads selected`;
+        }
+        updateStartCampaignButton();
+    };
+
+    // Create a proxy to handle selection changes
+    selectedLeads = new Proxy(selectedLeads, {
+        set(target, property, value) {
+            target[property] = value;
+            updateUI();
+            return true;
+        }
+    });
+}
+
+// Event Listeners
+function setupEventListeners() {
+    // File drag and drop
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-gray-600');
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-gray-600');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-gray-600');
+        
+        if (e.dataTransfer.files.length) {
+            handleFileSelection(e.dataTransfer.files[0]);
+        }
+    });
+
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            handleFileSelection(e.target.files[0]);
+        }
+    });
+}
+
+// Initialize
+function init() {
+    setupEventListeners();
+    // setupSelectionHandling();
+}
+
+// Start the application
+init();
+
+        // Excel file handling
+        document.getElementById('excel-upload').addEventListener('change', async function(e) {
+            // Show skeleton loader
+            document.getElementById('leads-skeleton').classList.remove('hidden');
+            document.getElementById('leads-table').classList.add('hidden');
+            document.getElementById('campaign-preview').classList.add('hidden');
+            document.getElementById('campaign-actions').classList.add('hidden');
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Get first worksheet
+                    const worksheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[worksheetName];
+                    
+                    // Convert to JSON
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // Create and populate table
+                    createLeadsTable(jsonData);
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+
+// Function to find the header row
+function findHeaderRow(data) {
+    const expectedHeaders = [
+        'Company',
+        'First Name',
+        'Last Name',
+        'Title',
+        'Email-1',
+        'Email-2'
+    ];
+
+    // Convert headers to lowercase for case-insensitive comparison
+    const expectedHeadersLower = expectedHeaders.map(h => h.toLowerCase().replace(/\s+/g, ''));
+
+    // Look for the header row
+    for (let i = 0; i < data.length; i++) {
+        const row = data[i].map(cell => (cell || '').toString().toLowerCase().replace(/\s+/g, ''));
+        
+        // Check if this row contains our expected headers
+        const containsHeaders = expectedHeadersLower.every(header => 
+            row.some(cell => cell.includes(header))
+        );
+
+        if (containsHeaders) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// Modifie
+
+// Modified cleanData function to handle the specific headers
+function cleanData(data) {
+    // Define expected headers and their clean versions
+    const headerMapping = {
+        'Company': 'company',
+        'First Name': 'first_name',
+        'Last Name': 'last_name',
+        'Title': 'title',
+        'Email-1': 'email_1',
+        'Email-2': 'email_2'
+    };
+
+    // Get all possible headers from the data
+    const allHeaders = new Set();
+    data.forEach(row => {
+        Object.keys(row).forEach(key => allHeaders.add(key));
+    });
+    
+    return data.map(row => {
+        const cleanRow = {};
+        // Process each header
+        allHeaders.forEach(header => {
+            const value = row[header];
+            // Use mapped header name if it exists, otherwise clean the header
+            const cleanKey = headerMapping[header] || 
+                           header.trim()
+                                .toLowerCase()
+                                .replace(/\s+/g, '_')
+                                .replace(/-/g, '_');
+            
+            // Handle empty or undefined values explicitly
+            if (value === undefined || value === null || value === '') {
+                cleanRow[cleanKey] = '';
+            } else {
+                // Clean up values
+                cleanRow[cleanKey] = typeof value === 'string' ? value.trim() : value;
+            }
+        });
+        return cleanRow;
+    });
+}
+
+// Update email generation to use the helper
+async function generatePersonalizedEmail(lead) {
+    const firstName = getLeadProperty(lead, 'firstName');
+    const company = getLeadProperty(lead, 'company');
+    const title = getLeadProperty(lead, 'title');
+    
+    // Generate confidence score based on data quality
+    const confidence = Math.floor(70 + Math.random() * 20);
+    
+    // Generate personalized email content with fallbacks
+    const subject = `Optimizing ${company || 'Your Company'}'s Medical Device Operations`;
+    
+    const body = `Dear ${firstName || 'Valued Professional'},
+
+I noticed ${company || 'your company'}'s impressive work in the medical device industry${title ? ` and your role as ${title}` : ''}. Your company's focus on innovation and recent expansion caught my attention.
+
+Based on our analysis of similar medical device manufacturers, we've identified opportunities to potentially increase your EBITDA beyond the current industry standard of 20%.
+
+Would you be open to a brief call to discuss how we could help optimize your operations?
+
+Best regards,
+[Sender Name]`;
+    
+    return {
+        company: company || 'Unknown Company',
+        recipient: `${firstName || ''} ${getLeadProperty(lead, 'lastName') || ''}`.trim() || 'Unknown Recipient',
+        subject,
+        body,
+        confidence,
+        metadata: {
+            website: {
+                technologies: ['Salesforce', 'HubSpot', 'Zendesk'],
+                recentNews: 'Recently expanded operations',
+                socialProfiles: {
+                    linkedin: true,
+                    twitter: true
+                }
+            },
+            verifiedEmail: Boolean(getLeadProperty(lead, 'email')),
+            phoneFound: true
+        }
+    };
+}
+
+        function createLeadsTable(data) {
+            if (!data || data.length === 0) return;
+            
+            // Clean the data
+            const cleanedData = cleanData(data);
+            if (cleanedData.length === 0) return;
+
+            // Show table and actions, hide skeleton
+            document.getElementById('leads-skeleton').classList.add('hidden');
+            document.getElementById('leads-table').classList.remove('hidden');
+            document.getElementById('campaign-actions').classList.remove('hidden');
+
+            const table = document.createElement('table');
+            table.className = 'min-w-full divide-y divide-gray-200 dark:divide-gray-700';
+            
+            // Create table header
+            const thead = document.createElement('thead');
+            thead.className = 'bg-gray-50 dark:bg-gray-700 table-fixed-header';
+            const headerRow = document.createElement('tr');
+            
+            // Add checkbox header
+            const checkboxHeader = document.createElement('th');
+            checkboxHeader.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-10';
+            const headerCheckbox = document.createElement('input');
+            headerCheckbox.id = 'select-all-checkbox'; // Add this line
+            headerCheckbox.type = 'checkbox';
+            headerCheckbox.className = 'form-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded';
+            headerCheckbox.addEventListener('change', (e) => {
+                const checkboxes = document.querySelectorAll('.lead-checkbox');
+                checkboxes.forEach(cb => {
+                    cb.checked = e.target.checked;
+                    const index = parseInt(cb.dataset.index);
+                    if (e.target.checked) {
+                        selectedLeads.add(index);
+                    } else {
+                        selectedLeads.delete(index);
+                    }
+                });
+                updateSelectedCount();
+            });
+            checkboxHeader.appendChild(headerCheckbox);
+            headerRow.appendChild(checkboxHeader);
+            
+            Object.keys(data[0]).forEach(key => {
+                const th = document.createElement('th');
+                th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider';
+                th.textContent = key;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            // Create table body
+            const tbody = document.createElement('tbody');
+            tbody.className = 'bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700';
+            
+            cleanedData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.className = index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700';
+                
+                // Add checkbox column
+                const checkboxCell = document.createElement('td');
+                checkboxCell.className = 'px-6 py-4 whitespace-nowrap';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'lead-checkbox form-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded';
+                checkbox.dataset.index = index;
+                checkboxCell.appendChild(checkbox);
+                tr.appendChild(checkboxCell);
+                
+                Object.values(row).forEach(value => {
+                    const td = document.createElement('td');
+                    td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300';
+                    td.textContent = value;
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+            
+            table.appendChild(tbody);
+            
+            // Replace existing table content
+            const tableContainer = document.getElementById('leads-table');
+            tableContainer.innerHTML = '';
+            tableContainer.appendChild(table);
+
+            // Setup checkbox event listeners
+            setupCheckboxListeners();
+        }
+
+
+// Replace the setupCheckboxListeners function with this fixed version
+function setupCheckboxListeners() {
+    const selectAllBtn = document.getElementById('select-all');
+    const startCampaignBtn = document.getElementById('start-campaign');
+    const headerCheckbox = document.getElementById('select-all-checkbox');
+    const checkboxes = document.querySelectorAll('.lead-checkbox');
+    
+    // // Header checkbox functionality
+    headerCheckbox.addEventListener('change', (e) => {
+        checkboxes.forEach(cb => {
+            cb.checked = e.target.checked;
+            const index = parseInt(cb.dataset.index);
+            if (e.target.checked) {
+                selectedLeads.add(index);
+            } else {
+                selectedLeads.delete(index);
+            }
+        });
+        updateSelectedCount();
+        selectAllBtn.textContent = e.target.checked ? 'Deselect All' : 'Select All';
+    });
+    
+    // Select All button functionality
+    selectAllBtn.addEventListener('click', () => {
+        const isSelectingAll = selectAllBtn.textContent === 'Select All';
+        headerCheckbox.checked = isSelectingAll;
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = isSelectingAll;
+            const index = parseInt(checkbox.dataset.index);
+            if (isSelectingAll) {
+                selectedLeads.add(index);
+            } else {
+                selectedLeads.delete(index);
+            }
+        });
+        updateSelectedCount();
+        selectAllBtn.textContent = isSelectingAll ? 'Deselect All' : 'Select All';
+    });
+    
+    // Individual checkbox functionality
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const index = parseInt(checkbox.dataset.index);
+            if (checkbox.checked) {
+                selectedLeads.add(index);
+            } else {
+                selectedLeads.delete(index);
+                headerCheckbox.checked = false;
+                selectAllBtn.textContent = 'Select All';
+            }
+            updateSelectedCount();
+            
+            // Update header checkbox state
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            headerCheckbox.checked = allChecked;
+            if (allChecked) {
+                selectAllBtn.textContent = 'Deselect All';
+            }
+        });
+    });
+    
+    // Enable/disable start campaign button based on selection
+    function updateStartCampaignButton() {
+        startCampaignBtn.disabled = selectedLeads.size === 0;
+    }
+    
+    // Update selected count and start campaign button state
+    const originalUpdateSelectedCount = window.updateSelectedCount;
+    window.updateSelectedCount = function() {
+        if (originalUpdateSelectedCount) {
+            originalUpdateSelectedCount();
+        }
+        const selectedCountElement = document.getElementById('selected-count');
+        if (selectedCountElement) {
+            selectedCountElement.textContent = `${selectedLeads.size} leads selected`;
+        }
+        updateStartCampaignButton();
+    };
+    
+    // Initial update of button state
+    updateStartCampaignButton();
+}
+
+// Campaign processing states and UI updates
+const PROCESSING_STATES = {
+    PENDING: 'pending',
+    IN_PROGRESS: 'in_progress',
+    COMPLETED: 'completed',
+    FAILED: 'failed'
+};
+
+const TASKS = {
+    EMAIL_GENERATION: 'Generating personalized email',
+    DATA_ENRICHMENT: 'Enriching contact data',
+    LINKEDIN_SCRAPING: 'Collecting LinkedIn information',
+    COMPANY_RESEARCH: 'Researching company details'
+};
+
+// Store enriched data for each lead
+const leadData = new Map();
+
+async function startCampaign() {
+    const selectedLeadsData = getSelectedLeadsData();
+    const table = document.querySelector('#leads-table table');
+    
+    // Add status column if it doesn't exist
+    addStatusColumn(table);
+    
+    // Process each selected lead
+    for (const [index, lead] of selectedLeadsData.entries()) {
+        const row = findRowByLeadData(table, lead);
+        if (!row) continue;
+
+        // Update row to show processing state
+        updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.EMAIL_GENERATION);
+        
+        try {
+            // Process the lead
+            const enrichedData = await processLead(lead, row);
+            leadData.set(index, enrichedData);
+            
+            // Update row to show completion
+            updateRowStatus(row, PROCESSING_STATES.COMPLETED, 'Complete');
+            
+            // Add view button
+            addViewButton(row, index);
+        } catch (error) {
+            console.error('Error processing lead:', error);
+            updateRowStatus(row, PROCESSING_STATES.FAILED, error.message);
+        }
+    }
+    
+    // Show completion modal
+    showCompletionModal(selectedLeadsData.length);
+}
+
+function updateRowStatus(row, state, task) {
+    const statusCell = row.querySelector('.status-cell');
+    if (!statusCell) return;
+
+    const statusClasses = {
+        [PROCESSING_STATES.PENDING]: 'bg-gray-100 text-gray-600',
+        [PROCESSING_STATES.IN_PROGRESS]: 'bg-blue-100 text-blue-600',
+        [PROCESSING_STATES.COMPLETED]: 'bg-green-100 text-green-600',
+        [PROCESSING_STATES.FAILED]: 'bg-red-100 text-red-600'
+    };
+
+    statusCell.innerHTML = `
+        <div class="flex items-center space-x-2 px-4 py-2 rounded-full ${statusClasses[state]}">
+            ${state === PROCESSING_STATES.IN_PROGRESS ? 
+                '<div class="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"></div>' : 
+                ''
+            }
+            <span>${task}</span>
+        </div>
+    `;
+}
+
+async function processLead(lead, row) {
+    // Simulate email generation
+    updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.EMAIL_GENERATION);
+    const emailData = await generatePersonalizedEmail(lead);
+    await simulateDelay();
+
+    // Simulate data enrichment
+    updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.DATA_ENRICHMENT);
+    const enrichedContacts = await enrichContactData(lead);
+    await simulateDelay();
+
+    // Simulate LinkedIn scraping
+    updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.LINKEDIN_SCRAPING);
+    const linkedinData = await scrapeLinkedInData(lead);
+    await simulateDelay();
+
+    // Simulate company research
+    updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.COMPANY_RESEARCH);
+    const companyData = await researchCompany(lead);
+    await simulateDelay();
+
+    return {
+        lead,
+        emailData,
+        enrichedContacts,
+        linkedinData,
+        companyData
+    };
+}
+
+function addViewButton(row, index) {
+    const actionsCell = document.createElement('td');
+    actionsCell.className = 'px-6 py-4 whitespace-nowrap text-right text-sm font-medium';
+    actionsCell.innerHTML = `
+        <button onclick="showLeadModal(${index})" 
+                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+            View Details
+        </button>
+    `;
+    row.appendChild(actionsCell);
+}
+
+function showLeadModal(index) {
+    const data = leadData.get(index);
+    if (!data) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full';
+    modal.innerHTML = `
+        <div class="relative top-20 mx-auto p-5 border w-4/5 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                    ${data.lead.company} - Lead Details
+                </h3>
+                <button onclick="this.closest('.fixed').remove()" 
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Email Preview -->
+                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h4 class="font-medium mb-2 text-gray-900 dark:text-white">Generated Email</h4>
+                    <div class="prose dark:prose-invert max-w-none">
+                        <p class="text-sm font-medium">Subject: ${data.emailData.subject}</p>
+                        <p class="text-sm mt-2 whitespace-pre-line">${data.emailData.body}</p>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h4 class="font-medium mb-2 text-gray-900 dark:text-white">Enriched Contact Data</h4>
+                    <div class="space-y-2">
+                        ${Object.entries(data.enrichedContacts).map(([key, value]) => `
+                            <div class="text-sm">
+                                <span class="font-medium">${key}:</span> ${value}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- LinkedIn Data -->
+                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h4 class="font-medium mb-2 text-gray-900 dark:text-white">LinkedIn Information</h4>
+                    <div class="space-y-2">
+                        ${Object.entries(data.linkedinData).map(([key, value]) => `
+                            <div class="text-sm">
+                                <span class="font-medium">${key}:</span> ${value}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Company Research -->
+                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h4 class="font-medium mb-2 text-gray-900 dark:text-white">Company Research</h4>
+                    <div class="space-y-2">
+                        ${Object.entries(data.companyData).map(([key, value]) => `
+                            <div class="text-sm">
+                                <span class="font-medium">${key}:</span> ${value}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Helper functions for data processing
+async function enrichContactData(lead) {
+    // Simulate API call to contact enrichment service
+    await simulateDelay();
+    return {
+        'Direct Phone': '+1 (555) 123-4567',
+        'Mobile': '+1 (555) 987-6543',
+        'Location': 'San Francisco, CA',
+        'Department': 'Operations',
+        'Company Size': '500-1000',
+        'Industry': 'Medical Devices'
+    };
+}
+
+// Helper function to safely access lead properties with different possible key formats
+function getLeadProperty(lead, properties) {
+    const possibleKeys = {
+        firstName: ['first_name', 'firstname', 'first name', 'fname'],
+        lastName: ['last_name', 'lastname', 'last name', 'lname'],
+        company: ['company', 'company_name', 'companyname'],
+        title: ['title', 'job_title', 'position'],
+        email: ['email', 'email_1', 'email-1', 'primary_email']
+    };
+
+    for (const [property, keys] of Object.entries(possibleKeys)) {
+        if (properties === property) {
+            for (const key of keys) {
+                if (lead[key] !== undefined) {
+                    return lead[key];
+                }
+            }
+        }
+    }
+    return ''; // Return empty string if property not found
+}
+
+// Update the scrapeLinkedInData function to use the helper
+async function scrapeLinkedInData(lead) {
+    // Safely get first and last names
+    const firstName = getLeadProperty(lead, 'firstName') || 'unknown';
+    const lastName = getLeadProperty(lead, 'lastName') || 'unknown';
+    
+    // Generate safe URL-friendly name
+    const urlName = `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
+    
+    await simulateDelay();
+    return {
+        'Profile URL': `https://linkedin.com/in/${urlName}`,
+        'Connections': '500+',
+        'Experience': '15+ years in Medical Devices',
+        'Education': 'MBA, Stanford University',
+        'Recent Activity': 'Posted about medical device innovation'
+    };
+}
+
+async function researchCompany(lead) {
+    // Simulate company research
+    await simulateDelay();
+    return {
+        'Annual Revenue': '$50M - $100M',
+        'Growth Rate': '12% YoY',
+        'Technologies': 'Salesforce, HubSpot, Zendesk',
+        'Recent News': 'Expanded operations to Europe',
+        'Competitors': 'Company A, Company B, Company C',
+        'Market Position': 'Top 10 in Medical Devices'
+    };
+}
+
+
+function getSelectedLeadsData() {
+    const selectedLeadsData = [];
+    const table = document.querySelector('#leads-table table');
+    const checkboxes = table.querySelectorAll('.lead-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            const row = checkbox.closest('tr');
+            const cells = row.querySelectorAll('td');
+            const leadData = {};
+            
+            // Skip first cell (checkbox) and get data from remaining cells
+            const headers = table.querySelectorAll('thead th');
+            for (let i = 1; i < cells.length; i++) {
+                const header = headers[i].textContent.toLowerCase().replace(/\s+/g, '_');
+                leadData[header] = cells[i].textContent;
+            }
+            
+            selectedLeadsData.push(leadData);
+        }
+    });
+    
+    return selectedLeadsData;
+}
+
+function findRowByLeadData(table, lead) {
+    const rows = table.querySelectorAll('tbody tr');
+    for (const row of rows) {
+        const cells = row.querySelectorAll('td');
+        let match = true;
+        
+        // Get the headers to match with lead data
+        const headers = Array.from(table.querySelectorAll('thead th')).map(th => 
+            th.textContent.trim().toLowerCase().replace(/[\s-]+/g, '_')
+        );
+        
+        // Compare each cell value with lead data
+        Object.entries(lead).forEach(([key, value]) => {
+            const cellIndex = headers.indexOf(key.toLowerCase());
+            if (cellIndex !== -1 && cells[cellIndex]) {
+                if (cells[cellIndex].textContent.trim() !== value.toString().trim()) {
+                    match = false;
+                }
+            }
+        });
+        
+        if (match) return row;
+    }
+    return null;
+}
+function findCellIndexForKey(table, key) {
+    const headers = table.querySelectorAll('thead th');
+    for (let i = 0; i < headers.length; i++) {
+        if (headers[i].textContent.toLowerCase().replace(/\s+/g, '_') === key) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+
+function simulateDelay() {
+    return new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 20));
+}
+
+// Update the start campaign button event listener
+document.getElementById('start-campaign').addEventListener('click', startCampaign);
+
+        // Add event listener to start campaign button in preview
+        // document.querySelector('#campaign-preview button:last-child').addEventListener('click', startCampaign);
+        
+
+        function addStatusColumn(table) {
+    const headerRow = table.querySelector('thead tr');
+    const rows = table.querySelectorAll('tbody tr');
+    
+    // Add header if it doesn't exist
+    if (!headerRow.querySelector('.status-header')) {
+        const statusHeader = document.createElement('th');
+        statusHeader.className = 'status-header px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider';
+        statusHeader.textContent = 'Status';
+        headerRow.appendChild(statusHeader);
+    }
+    
+    // Add status cell to each row if it doesn't exist
+    rows.forEach(row => {
+        if (!row.querySelector('.status-cell')) {
+            const statusCell = document.createElement('td');
+            statusCell.className = 'status-cell px-6 py-4 whitespace-nowrap';
+            statusCell.innerHTML = `
+                <div class="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-100 text-gray-600">
+                    <span>Pending</span>
+                </div>
+            `;
+            row.appendChild(statusCell);
+        }
+    });
+}
+
+function showCompletionModal(totalProcessed) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full';
+    modal.innerHTML = `
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                    <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mt-4">Campaign Processing Complete</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Successfully processed ${totalProcessed} leads. Click "View Details" on any lead to see the complete data.
+                    </p>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button onclick="this.closest('.fixed').remove()"
+                            class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+    </script>
+</body>
+</html>

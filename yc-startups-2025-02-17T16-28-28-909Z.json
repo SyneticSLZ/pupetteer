@@ -1,0 +1,141 @@
+[
+  {
+    "companyName": "Founder Directory",
+    "tagline": "Footer",
+    "description": null,
+    "founded": null,
+    "location": null,
+    "teamSize": null,
+    "website": "https://startupschool.org/?utm_source=yc&utm_campaign=ycdc_header",
+    "metrics": {
+      "revenue": null,
+      "growth": null,
+      "users": null,
+      "arr": null,
+      "mrr": null
+    },
+    "founders": [
+      {
+        "name": "Programs",
+        "role": "Since 2005, we have invested in over 9,000 founders. Discover YC founders by batch, industry, region, and background.",
+        "socials": {
+          "linkedin": "https://www.linkedin.com/school/y-combinator/",
+          "twitter": "https://twitter.com/ycombinator"
+        },
+        "emails": []
+      }
+    ],
+    "contacts": {
+      "emails": [],
+      "phones": [],
+      "addresses": [],
+      "social": {
+        "twitter": [
+          "ycombinator"
+        ],
+        "facebook": [
+          "YCombinator"
+        ],
+        "instagram": [
+          "ycombinator"
+        ]
+      }
+    },
+    "scrapedAt": "2025-02-17T16:28:00.685Z",
+    "sourceUrl": "https://www.ycombinator.com/companies/founders"
+  },
+  {
+    "companyName": "Airbnb",
+    "tagline": "Footer",
+    "description": null,
+    "founded": null,
+    "location": null,
+    "teamSize": null,
+    "website": "https://startupschool.org/?utm_source=yc&utm_campaign=ycdc_header",
+    "metrics": {
+      "revenue": null,
+      "growth": null,
+      "users": null,
+      "arr": null,
+      "mrr": null
+    },
+    "founders": [],
+    "contacts": {
+      "emails": [],
+      "phones": [],
+      "addresses": [],
+      "social": {
+        "twitter": [
+          "Airbnb",
+          "nathanblec",
+          "bchesky",
+          "jgebbia",
+          "ycombinator"
+        ],
+        "linkedin": [
+          "airbnb",
+          "blecharczyk",
+          "brianchesky",
+          "jgebbia"
+        ],
+        "facebook": [
+          "airbnb",
+          "YCombinator"
+        ],
+        "instagram": [
+          "ycombinator"
+        ],
+        "crunchbase": [
+          "airbnb"
+        ]
+      }
+    },
+    "scrapedAt": "2025-02-17T16:28:13.820Z",
+    "sourceUrl": "https://www.ycombinator.com/companies/airbnb"
+  },
+  {
+    "companyName": "Amplitude",
+    "tagline": "Footer",
+    "description": null,
+    "founded": null,
+    "location": null,
+    "teamSize": null,
+    "website": "https://startupschool.org/?utm_source=yc&utm_campaign=ycdc_header",
+    "metrics": {
+      "revenue": null,
+      "growth": null,
+      "users": null,
+      "arr": null,
+      "mrr": null
+    },
+    "founders": [],
+    "contacts": {
+      "emails": [],
+      "phones": [],
+      "addresses": [],
+      "social": {
+        "twitter": [
+          "Amplitude_HQ",
+          "ycombinator"
+        ],
+        "linkedin": [
+          "amplitude-analytics",
+          "spenserskates",
+          "jerry-klingenberger-15027791"
+        ],
+        "facebook": [
+          "AmplitudeAnalytics",
+          "YCombinator"
+        ],
+        "instagram": [
+          "ycombinator"
+        ],
+        "crunchbase": [
+          "amplitude"
+        ]
+      }
+    },
+    "scrapedAt": "2025-02-17T16:28:25.670Z",
+    "sourceUrl": "https://www.ycombinator.com/companies/amplitude"
+  }
+]
