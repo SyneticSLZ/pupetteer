@@ -1,6 +1,7 @@
 const express = require('express');
 const { handleScrapeRequest } = require('./scrapeLogic');
 const puppeteer = require("puppeteer");
+const cors = require('cors');
 
 const app = express();
 const PORT = 4000;
