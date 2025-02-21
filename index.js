@@ -5,6 +5,13 @@ const puppeteer = require("puppeteer");
 const app = express();
 const PORT = 4000;
 
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://syneticslz.github.io', 'http://127.0.0.1:5501'],
+  credentials: true
+}));;
+app.use(express.json())
+
+
 app.get('/scrape', handleScrapeRequest);
 
 
