@@ -396,6 +396,19 @@ const scrapeWebsite = async (url, res) => {
   }
 };
 
+const handleScrapeRequest = async (req, res) => {
+  const url = req.query.url || req.body.url;
+  
+  if (!url) {
+    return res.status(400).send({
+      status: 'error',
+      message: 'URL is required'
+    });
+  }
+
+  await scrapeWebsite(url, res);
+};
+
 async function analyzeData(data, page) {
   // Competitive Analysis
   const competitiveAnalysis = {
@@ -920,18 +933,7 @@ module.exports = {
 
 
 // // Simple Express route handler
-const handleScrapeRequest = async (req, res) => {
-  const url = req.query.url || req.body.url;
-  
-  if (!url) {
-    return res.status(400).send({
-      status: 'error',
-      message: 'URL is required'
-    });
-  }
 
-  await scrapeWebsite(url, res);
-};
 
 // module.exports = {
 //   scrapeWebsite,
