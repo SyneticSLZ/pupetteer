@@ -129,20 +129,38 @@ async function scrapeProductHunt(url) {
 //     console.error('Failed to scrape:', error);
 //   });
 
-  app.get('/producthuntwebsite', async (req, res) => {
-    try {
-      const { url } = req.body;
-    const data = await scrapeProductHunt(url).then(data => {
-      console.log('Scraped Data:', JSON.stringify(data, null, 2));
-      res.json({ website: data.websiteUrl });
-    })
-    .catch(error => {
-      console.error('Failed to scrape:', error);
-      res.json({ website: null });
-    });
+  // app.post('/producthuntwebsite', async (req, res) => {
+  //   try {
+  //     const { url } = req.body;
+  //   const data = await scrapeProductHunt(url).then(data => {
+  //     console.log('Scraped Data:', JSON.stringify(data, null, 2));
+  //     res.json({ website: data.websiteUrl });
+  //   })
+  //   .catch(error => {
+  //     console.error('Failed to scrape:', error);
+  //     res.json({ website: null });
+  //   });
   
       
+  //   } catch (error) {
+  //     res.status(500).json({ error: 'Failed to scrape data' });
+  //   }
+  // });
+
+
+  app.post('/producthuntwebsite', async (req, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: 'URL is required' });
+      }
+  
+      const data = await scrapeProductHunt(url);
+      console.log('Scraped Data:', JSON.stringify(data, null, 2));
+      res.json({ website: data.websiteUrl });
     } catch (error) {
+      console.error('Failed to scrape:', error);
       res.status(500).json({ error: 'Failed to scrape data' });
     }
   });
