@@ -1,17 +1,82 @@
+
+
 const puppeteer = require("puppeteer");
 require("dotenv").config();
 
-// Enhanced regex patterns
+// Enhanced regex patterns - stored as strings to pass through evaluate()
 const PATTERNS = {
-  phone: /(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})(?: *x(\d+))?/g,
-  email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-  numbers: /(?:\$\s*)?(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:thousand|million|billion|k|m|b)?(?:\s*\+)?/gi,
-  percentages: /(\d+(?:\.\d+)?)\s*%/g,
-  employeeCount: /(\d+(?:\+|\s*-\s*\d+)?)\s*(?:employees|team members|people|staff)/i,
-  customerCount: /(\d+(?:\+|\s*-\s*\d+)?)\s*(?:customers|clients|users|businesses)/i,
-  revenue: /(?:revenue|arr|mrr).{0,30}?\$?\s*(\d+(?:\.\d+)?)\s*(?:k|m|b|million|billion)?/i,
-  yearFounded: /(?:founded|established|since)\s*(?:in)?\s*(\d{4})/i,
-  companyAge: /(\d+)\+?\s*(?:years|yrs)(?:\s*of\s*experience|\s*in\s*business)/i
+  // Enhanced phone pattern to catch more formats including international
+  phone: '(?:\\+?\\d{1,4}[-. ]?)?(?:\\(?([0-9]{3})\\)?[-. ]?)?([0-9]{3})[-. ]?([0-9]{4})|(?:\\+?\\d{1,4}[-. ]?)?\\d{2,4}[-. ]?\\d{2,4}[-. ]?\\d{2,4}',
+  email: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}',
+  numbers: '(?:\\$\\s*)?(\\d+(?:,\\d{3})*(?:\\.\\d+)?)\\s*(?:thousand|million|billion|k|m|b)?(?:\\s*\\+)?',
+  percentages: '(\\d+(?:\\.\\d+)?)\\s*%',
+  employeeCount: '(\\d+(?:\\+|\\s*-\\s*\\d+)?)\\s*(?:employees|team members|people|staff)',
+  customerCount: '(\\d+(?:\\+|\\s*-\\s*\\d+)?)\\s*(?:customers|clients|users|businesses)',
+  revenue: '(?:revenue|arr|mrr).{0,30}?\\$?\\s*(\\d+(?:\\.\\d+)?)\\s*(?:k|m|b|million|billion)?',
+  yearFounded: '(?:founded|established|since)\\s*(?:in)?\\s*(\\d{4})',
+  companyAge: '(\\d+)\\+?\\s*(?:years|yrs)(?:\\s*of\\s*experience|\\s*in\\s*business)'
+};
+
+
+const CONTACT_PATTERNS = {
+  // Phone patterns for different formats
+  phones: {
+    international: /\+\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}/g,
+    us: /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g,
+    extension: /(?:ext|x|extension)\.?\s*\d{1,5}/gi,
+    uk: /(?:\+?44|0)[-.\s]?\d{2,5}[-.\s]?\d{6,8}/g,
+    generic: /\b\d{8,14}\b/g
+  },
+  
+  // Email patterns
+  emails: {
+    standard: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    generic: /(?:[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi,
+    obfuscated: /\b[a-zA-Z0-9._%+-]+\s*(?:\[at\]|\(at\)|\[@\]|@)\s*[a-zA-Z0-9.-]+\s*(?:\[dot\]|\(dot\)|\.)\s*[a-zA-Z]{2,}\b/gi
+  },
+
+  // Social media patterns
+  social: {
+    linkedin: /(?:linkedin\.com\/(?:company\/|in\/|profile\/)?[a-zA-Z0-9-]+)/gi,
+    twitter: /(?:twitter\.com\/[a-zA-Z0-9_]+)/gi,
+    facebook: /(?:facebook\.com\/(?:pages\/)?[a-zA-Z0-9.-]+)/gi,
+    instagram: /(?:instagram\.com\/[a-zA-Z0-9_]+)/gi
+  },
+
+  // Address patterns
+  address: {
+    poBox: /P\.?O\.?\s*Box\s+\d+/gi,
+    zipCode: /\b\d{5}(?:-\d{4})?\b/g,
+    street: /\d+\s+[a-zA-Z0-9\s,]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|circle|cir|way|parkway|pkwy)\b/gi
+  }
+};
+
+// Contact information validator and formatter
+const ContactValidator = {
+  cleanPhone: (phone) => {
+    return phone.replace(/[^\d+]/g, '')
+      .replace(/^00/, '+')
+      .replace(/^(\d{1,3})(\d{3})(\d{3})(\d{4})$/, '+$1 $2 $3 $4');
+  },
+
+  isValidPhone: (phone) => {
+    const digits = phone.replace(/\D/g, '');
+    return digits.length >= 10 && digits.length <= 15;
+  },
+
+  cleanEmail: (email) => {
+    return email.toLowerCase()
+      .replace(/\s*\[at\]\s*|\s*\(at\)\s*/i, '@')
+      .replace(/\s*\[dot\]\s*|\s*\(dot\)\s*/i, '.');
+  },
+
+  isValidEmail: (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  },
+
+  formatAddress: (address) => {
+    return address.replace(/\s+/g, ' ').trim();
+  }
 };
 
 // Enhanced business categories
@@ -63,6 +128,20 @@ const PAIN_POINT_INDICATORS = {
   }
 };
 
+const handleScrapeRequest = async (req, res) => {
+  const url = req.query.url || req.body.url;
+  
+  if (!url) {
+    return res.status(400).send({
+      status: 'error',
+      message: 'URL is required'
+    });
+  }
+
+  await scrapeWebsite(url, res);
+};
+
+
 const scrapeWebsite = async (url, res) => {
   let browser = null;
 
@@ -79,6 +158,35 @@ const scrapeWebsite = async (url, res) => {
       waitUntil: 'networkidle0', 
       timeout: 30000 
     });
+
+        // Extract contact information
+        const contactInfo = await extractContactInfo(page);
+
+        // Clean and validate contact information
+        const cleanedData = {
+          phones: contactInfo.phones
+            .map(phone => ContactValidator.cleanPhone(phone))
+            .filter(phone => ContactValidator.isValidPhone(phone)),
+          
+          emails: contactInfo.emails
+            .map(email => ContactValidator.cleanEmail(email))
+            .filter(email => ContactValidator.isValidEmail(email)),
+          
+          social: contactInfo.social,
+          
+          addresses: contactInfo.addresses
+            .map(addr => ContactValidator.formatAddress(addr))
+            .filter(addr => addr.length > 10),
+          
+          structured: contactInfo.structured
+        };
+    
+        // Deduplicate data
+        cleanedData.phones = [...new Set(cleanedData.phones)];
+        cleanedData.emails = [...new Set(cleanedData.emails)];
+        cleanedData.addresses = [...new Set(cleanedData.addresses)];
+
+        
 
     // Extract comprehensive page data
     const pageData = await page.evaluate((config) => {
@@ -100,13 +208,31 @@ const scrapeWebsite = async (url, res) => {
         return text.toLowerCase();
       };
 
-      const findMatches = (text, pattern) => {
+      const findMatches = (text, patternStr) => {
+        const pattern = new RegExp(patternStr, 'gi');
         const matches = [];
         let match;
-        while ((match = pattern.exec(text)) !== null) {
-          matches.push(match[0]);
-        }
-        return matches;
+        
+        // Handle different text elements
+        const textElements = [
+          text,
+          ...Array.from(document.querySelectorAll('a[href^="tel:"]')).map(a => a.href.replace('tel:', '')),
+          ...Array.from(document.querySelectorAll('*')).map(el => el.textContent)
+        ];
+
+        textElements.forEach(textElement => {
+          if (typeof textElement === 'string') {
+            while ((match = pattern.exec(textElement)) !== null) {
+              const foundMatch = match[0].trim();
+              // Deduplicate and validate
+              if (!matches.includes(foundMatch) && foundMatch.length >= 6) {
+                matches.push(foundMatch);
+              }
+            }
+          }
+        });
+
+        return [...new Set(matches)]; // Remove duplicates
       };
 
       const getStructuredContent = () => {
@@ -351,7 +477,7 @@ const scrapeWebsite = async (url, res) => {
         painPoints: Object.entries(PAIN_POINT_INDICATORS).reduce((acc, [category, indicators]) => {
           acc[category] = Object.entries(indicators).reduce((subAcc, [type, keywords]) => {
             const matches = keywords.filter(keyword => allText.includes(keyword.toLowerCase()));
-            if (matches.length > 0) subAcc[type] = matches;
+            if (matches.length > 0) subAcc[ type] = matches;
             return subAcc;
           }, {});
           return acc;
@@ -361,6 +487,7 @@ const scrapeWebsite = async (url, res) => {
 
     // Post-processing and analysis
     pageData.analysis = await analyzeData(pageData, page);
+    pageData.people = cleanedData
 
     await browser.close();
     browser = null;
@@ -394,19 +521,6 @@ const scrapeWebsite = async (url, res) => {
       throw error;
     }
   }
-};
-
-const handleScrapeRequest = async (req, res) => {
-  const url = req.query.url || req.body.url;
-  
-  if (!url) {
-    return res.status(400).send({
-      status: 'error',
-      message: 'URL is required'
-    });
-  }
-
-  await scrapeWebsite(url, res);
 };
 
 async function analyzeData(data, page) {
@@ -531,6 +645,463 @@ function identifyThreats(data) {
   }
 
   return threats;
+}
+
+// Analysis helper functions
+function identifyRevenueStreams(data) {
+  const streams = [];
+
+  // Check subscription revenue
+  if (data.business.pricing.plans.length > 0) {
+    streams.push({
+      type: 'Subscription',
+      details: data.business.pricing.plans.map(plan => plan.name),
+      recurring: true
+    });
+  }
+
+  // Check for one-time purchases
+  if (data.business.categories.businessModel.transactional) {
+    streams.push({
+      type: 'Transactional',
+      details: ['One-time purchases'],
+      recurring: false
+    });
+  }
+
+  // Check for enterprise revenue
+  if (data.business.pricing.enterpriseOffering) {
+    streams.push({
+      type: 'Enterprise',
+      details: ['Custom enterprise solutions'],
+      recurring: true
+    });
+  }
+
+  // Check for API/usage based revenue
+  if (data.technical.features.api) {
+    streams.push({
+      type: 'API/Usage',
+      details: ['API access fees'],
+      recurring: true
+    });
+  }
+
+  return streams;
+}
+
+function analyzeCustomerSegments(data) {
+  const segments = {
+    primary: [],
+    secondary: [],
+    potential: []
+  };
+
+  // Analyze primary segments
+  if (data.business.categories.businessModel.b2b) {
+    segments.primary.push('B2B');
+  }
+  if (data.business.categories.businessModel.b2c) {
+    segments.primary.push('B2C');
+  }
+
+  // Analyze by industry focus
+  Object.entries(data.business.categories.industries).forEach(([industry, matches]) => {
+    if (Object.keys(matches).length > 0) {
+      segments.primary.push(industry.charAt(0).toUpperCase() + industry.slice(1));
+    }
+  });
+
+  // Identify secondary segments
+  if (data.business.pricing.enterpriseOffering) {
+    segments.secondary.push('Enterprise');
+  }
+  if (data.business.pricing.hasFreePlan) {
+    segments.secondary.push('SMB/Startup');
+  }
+
+  // Identify potential segments
+  if (!segments.primary.includes('B2C') && data.technical.features.customization) {
+    segments.potential.push('B2C Market');
+  }
+  if (!segments.primary.includes('Enterprise') && data.technical.features.security) {
+    segments.potential.push('Enterprise Market');
+  }
+
+  return segments;
+}
+
+async function extractContactInfo(page) {
+  return await page.evaluate((patterns) => {
+    const results = {
+      phones: new Set(),
+      emails: new Set(),
+      social: {},
+      addresses: new Set(),
+      structured: []
+    };
+
+    // Helper function to extract text from elements
+    const extractText = (selector) => {
+      return Array.from(document.querySelectorAll(selector))
+        .map(el => el.textContent.trim())
+        .filter(text => text.length > 0);
+    };
+
+    // Extract from specific contact-related elements
+    const contactSelectors = [
+      '.contact',
+      '#contact',
+      '[class*="contact"]',
+      '[id*="contact"]',
+      'footer',
+      'header',
+      '[class*="footer"]',
+      '[class*="header"]'
+    ];
+
+    // Process each contact section
+    contactSelectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        const text = element.textContent;
+
+        // Extract phones
+        Object.values(patterns.phones).forEach(pattern => {
+          const matches = text.match(pattern) || [];
+          matches.forEach(match => results.phones.add(match.trim()));
+        });
+
+        // Extract emails
+        Object.values(patterns.emails).forEach(pattern => {
+          const matches = text.match(pattern) || [];
+          matches.forEach(match => results.emails.add(match.trim()));
+        });
+
+        // Extract addresses
+        Object.values(patterns.address).forEach(pattern => {
+          const matches = text.match(pattern) || [];
+          matches.forEach(match => results.addresses.add(match.trim()));
+        });
+      });
+    });
+
+    // Extract from specific link elements
+    const phoneLinks = document.querySelectorAll('a[href^="tel:"]');
+    phoneLinks.forEach(link => {
+      const phone = link.href.replace('tel:', '');
+      results.phones.add(phone.trim());
+    });
+
+    const emailLinks = document.querySelectorAll('a[href^="mailto:"]');
+    emailLinks.forEach(link => {
+      const email = link.href.replace('mailto:', '').split('?')[0];
+      results.emails.add(email.trim());
+    });
+
+    // Extract social media links
+    Object.entries(patterns.social).forEach(([platform, pattern]) => {
+      results.social[platform] = [];
+      const links = document.querySelectorAll(`a[href*="${platform}"]`);
+      links.forEach(link => {
+        const matches = link.href.match(pattern);
+        if (matches) {
+          results.social[platform].push(matches[0]);
+        }
+      });
+    });
+
+    // Extract from structured data
+    document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+      try {
+        const data = JSON.parse(script.textContent);
+        if (data?.contactPoint || data?.address || data?.telephone || data?.email) {
+          results.structured.push(data);
+        }
+      } catch (e) {
+        // Skip invalid JSON
+      }
+    });
+
+    // Convert Sets to Arrays for JSON serialization
+    return {
+      phones: Array.from(results.phones),
+      emails: Array.from(results.emails),
+      social: results.social,
+      addresses: Array.from(results.addresses),
+      structured: results.structured
+    };
+  }, CONTACT_PATTERNS);
+}
+
+function assessScalability(data) {
+  const assessment = {
+    score: 0, // 0-10
+    factors: {
+      positive: [],
+      negative: []
+    },
+    bottlenecks: []
+  };
+
+  // Analyze positive scalability factors
+  if (data.technical.features.automation) {
+    assessment.factors.positive.push('Automated processes');
+    assessment.score += 2;
+  }
+  if (data.technical.features.api) {
+    assessment.factors.positive.push('API-first architecture');
+    assessment.score += 2;
+  }
+  if (data.business.pricing.hasFreeTrial) {
+    assessment.factors.positive.push('Self-service onboarding');
+    assessment.score += 1;
+  }
+
+  // Analyze negative factors
+  if (!data.technical.features.automation) {
+    assessment.factors.negative.push('Manual processes');
+    assessment.bottlenecks.push('Process automation needed');
+  }
+  if (Object.keys(data.painPoints).length > 2) {
+    assessment.factors.negative.push('Multiple pain points');
+    assessment.score -= 1;
+  }
+
+  // Cap the score between 0 and 10
+  assessment.score = Math.min(Math.max(assessment.score, 0), 10);
+
+  return assessment;
+}
+
+function analyzeStackMaturity(data) {
+  const analysis = {
+    maturityScore: 0,
+    strengths: [],
+    gaps: [],
+    recommendations: []
+  };
+
+  // Analyze technical stack
+  if (data.technical.stack.frontend.length > 0) {
+    analysis.strengths.push('Modern frontend framework');
+    analysis.maturityScore += 2;
+  }
+  if (data.technical.stack.analytics.length > 0) {
+    analysis.strengths.push('Analytics integration');
+    analysis.maturityScore += 1;
+  }
+
+  // Identify gaps
+  if (!data.technical.features.security) {
+    analysis.gaps.push('Security features');
+    analysis.recommendations.push('Implement security best practices');
+  }
+  if (!data.technical.features.api) {
+    analysis.gaps.push('API architecture');
+    analysis.recommendations.push('Develop API-first approach');
+  }
+
+  return analysis;
+}
+
+function assessInfrastructureNeeds(data) {
+  return {
+    current: identifyCurrentInfrastructure(data),
+    required: determineRequiredInfrastructure(data),
+    gaps: findInfrastructureGaps(data)
+  };
+}
+
+function evaluateSecurityProfile(data) {
+  return {
+    status: data.technical.features.security ? 'Strong' : 'Needs Improvement',
+    measures: identifySecurityMeasures(data),
+    risks: identifySecurityRisks(data)
+  };
+}
+
+function identifyTechnicalDebtIndicators(data) {
+  const indicators = [];
+  
+  if (!data.technical.features.automation) {
+    indicators.push('Manual processes that could be automated');
+  }
+  if (!data.technical.features.api) {
+    indicators.push('Lack of API architecture');
+  }
+  if (Object.keys(data.painPoints.technical || {}).length > 0) {
+    indicators.push('Existing technical pain points');
+  }
+
+  return indicators;
+}
+
+function determineGrowthStage(data) {
+  // Default to early stage
+  let stage = 'Early Stage';
+  
+  // Use metrics to determine stage
+  if (data.business.metrics.customerCount) {
+    const customerCount = parseInt(data.business.metrics.customerCount);
+    if (customerCount > 1000) stage = 'Growth';
+    if (customerCount > 10000) stage = 'Scale';
+    if (customerCount > 100000) stage = 'Enterprise';
+  }
+
+  return {
+    stage,
+    indicators: identifyGrowthIndicators(data),
+    nextMilestones: determineNextMilestones(data)
+  };
+}
+
+function extractGrowthMetrics(data) {
+  return {
+    customers: data.business.metrics.customerCount,
+    revenue: data.business.metrics.revenue,
+    employees: data.business.metrics.employeeCount,
+    age: data.business.metrics.companyAge
+  };
+}
+
+function identifyGrowthBottlenecks(data) {
+  const bottlenecks = [];
+
+  // Technical bottlenecks
+  if (!data.technical.features.automation) {
+    bottlenecks.push({
+      type: 'Technical',
+      issue: 'Manual processes limiting scale',
+      impact: 'High'
+    });
+  }
+
+  // Business bottlenecks
+  if (!data.business.pricing.enterpriseOffering) {
+    bottlenecks.push({
+      type: 'Business',
+      issue: 'Limited enterprise readiness',
+      impact: 'Medium'
+    });
+  }
+
+  return bottlenecks;
+}
+
+function findGrowthOpportunities(data) {
+  const opportunities = [];
+
+  // Market opportunities
+  if (!data.business.categories.businessModel.b2c) {
+    opportunities.push({
+      type: 'Market Expansion',
+      description: 'B2C market entry potential',
+      effort: 'High',
+      impact: 'High'
+    });
+  }
+
+  // Product opportunities
+  if (!data.technical.features.ai) {
+    opportunities.push({
+      type: 'Product Development',
+      description: 'AI/ML feature integration',
+      effort: 'High',
+      impact: 'Medium'
+    });
+  }
+
+  return opportunities;
+}
+
+// Additional helper functions
+function identifyCurrentInfrastructure(data) {
+  const infrastructure = [];
+  
+  // Identify current infrastructure components
+  if (data.technical.stack.frontend.length > 0) {
+    infrastructure.push('Frontend Framework');
+  }
+  if (data.technical.stack.analytics.length > 0) {
+    infrastructure.push('Analytics Platform');
+  }
+  
+  return infrastructure;
+}
+
+function determineRequiredInfrastructure(data) {
+  const required = new Set();
+  
+  // Determine required infrastructure based on business needs
+  if (data.business.categories.industries.saas) {
+    required.add('Cloud Infrastructure');
+    required.add('API Gateway');
+  }
+  if (data.technical.features.security) {
+    required.add('Security Infrastructure');
+  }
+  
+  return Array.from(required);
+}
+
+function findInfrastructureGaps(data) {
+  const current = new Set(identifyCurrentInfrastructure(data));
+  const required = new Set(determineRequiredInfrastructure(data));
+  
+  return Array.from(required).filter(item => !current.has(item));
+}
+
+function identifySecurityMeasures(data) {
+  const measures = [];
+  
+  if (data.technical.features.security) {
+    measures.push('Security Features Present');
+  }
+  if (data.business.categories.industries.fintech) {
+    measures.push('Financial Security Requirements');
+  }
+  
+  return measures;
+}
+
+function identifySecurityRisks(data) {
+  const risks = [];
+  
+  if (!data.technical.features.security) {
+    risks.push('Lack of Security Features');
+  }
+  if (data.business.categories.industries.fintech && !data.technical.features.security) {
+    risks.push('Missing Financial Security Requirements');
+  }
+  
+  return risks;
+}
+
+function identifyGrowthIndicators(data) {
+  const indicators = [];
+  
+  if (data.business.metrics.customerCount) {
+    indicators.push('Growing Customer Base');
+  }
+  if (data.technical.features.automation) {
+    indicators.push('Scalable Architecture');
+  }
+  
+  return indicators;
+}
+
+function determineNextMilestones(data) {
+  const milestones = [];
+  
+  if (!data.technical.features.api) {
+    milestones.push('API Development');
+  }
+  if (!data.technical.features.automation) {
+    milestones.push('Process Automation');
+  }
+  
+  return milestones;
 }
 
 function determineBusinessModel(data) {
