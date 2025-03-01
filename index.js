@@ -470,6 +470,7 @@ app.get('/scrape', handleScrapeRequest);
       console.log('Scraped Data:', JSON.stringify(data, null, 2));
       res.json({ 
         website: data.websiteUrl || null,
+        makers: data.makers,
         productName: data.productName,
         description: data.description?.substring(0, 100) + '...' // Including some product data as fallback
       });
