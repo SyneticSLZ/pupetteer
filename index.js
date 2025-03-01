@@ -301,6 +301,7 @@ async function scrapeProductHunt(url) {
       if (!url) {
         return res.status(400).json({ error: 'URL is required' });
       }
+      console.log(url)
   
       const data = await scrapeProductHunt(url);
       
@@ -329,6 +330,15 @@ async function scrapeProductHunt(url) {
 // npm install puppeteer
 
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+
+  url = 'https://www.producthunt.com/posts/firsthr-2-0-with-hr-copilot?utm_campaign=producthunt-api&utm_medium=api-v2&utm_source=Application%3A+test++%28ID%3A+169128%29'
+  const data = await scrapeProductHunt(url);
+      
+  if (data.error) {
+    console.log('Scraping encountered an error:', data.error);
+  }
+  
+  console.log('Scraped Data:', JSON.stringify(data, null, 2));
 });
