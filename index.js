@@ -19,7 +19,23 @@ app.use(express.json())
 app.get('/scrape', handleScrapeRequest);
 
 
-
+app.get('/scrape/pbm', async (req, res) => {
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  await page.goto('https://www.express-scripts.com/formulary', { waitUntil: 'networkidle2' });
+  const data = await page.evaluate(() => {
+    const drugs = [];
+    document.querySelectorAll('.drug-item').forEach(item => {
+      drugs.push({
+        name: item.querySelector('.name')?.textContent || 'Unknown',
+        cost: parseFloat(item.querySelector('.cost')?.textContent?.replace('$', '')) || 0,
+      });
+    });
+    return drugs;
+  });
+  await browser.close();
+  res.json(data);
+});
 
 
 async function scrapeProductHunt(url) {
