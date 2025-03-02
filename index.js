@@ -694,16 +694,16 @@ app.listen(PORT, async () => {
 
 
     //  console.log( getLatestProductHuntPosts())
-     await getEnhancedProductHuntData()
-    .then(async data => {
-        await require('fs').promises.writeFile(
-        'company.json', 
-        JSON.stringify(data, null, 2)
-    );
-        console.log('Operation completed successfully');
-        console.log('Response data:', data);
-    })
-    .catch(error => {
-        console.error('Operation failed:', error);
-    });
+    //  await getEnhancedProductHuntData()
+    // .then(async data => {
+    //     await require('fs').promises.writeFile(
+    //     'company.json', 
+    //     JSON.stringify(data, null, 2)
+    // );
+    //     console.log('Operation completed successfully');
+    //     console.log('Response data:', data);
+    // })
+    // .catch(error => {
+    //     console.error('Operation failed:', error);
+    // });
 });
