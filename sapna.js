@@ -612,6 +612,26 @@ async function startCampaign(leadsData) {
 
     showCompletionModal(leadsData.length);
 }
+
+const EMAIL_SIGNATURE = `
+    <br><br>
+    <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 12px; color: #333;">
+        <tr>
+            <td style="padding-right: 15px; vertical-align: top;">
+                <img src="https://example.com/entelmedlifeline-logo.png" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block;">
+            </td>
+            <td style="vertical-align: top;">
+                <strong>Sapna Ravula</strong><br>
+                Cebron Group<br>
+                Investment Banking - Healthcare M&A<br>
+                Phone: +1-123-456-7890<br>
+                Email: sapna.ravula@cebrongroup.com<br>
+                Website: <a href="https://www.cebrongroup.com" style="color: #007BFF; text-decoration: none;">www.cebrongroup.com</a>
+            </td>
+        </tr>
+    </table>
+`;
+
 async function processLead(lead, row) {
     try {
         const metadata = {

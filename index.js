@@ -682,7 +682,7 @@ async function scrapeProductHunt(url) {
 
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
-  data = getRecentYCStartups(10)
+  // data = getRecentYCStartups(10)
 // producthunt individual
   // url = 'https://www.producthunt.com/posts/flare-6?utm_campaign=producthunt-api&utm_medium=api-v2&utm_source=Application%3A+test++%28ID%3A+169128%29'
   // const data = await scrapeProductHunt(url);
