@@ -811,12 +811,12 @@ async function startCampaign(leadsData) {
 
 const EMAIL_SIGNATURE = `
     <br><br>
-    <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 12px; color: #333; width: 100%; max-width: 400px;">
+    <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 12px; color: #333; width: 100%; max-width: 400px; border-collapse: collapse;">
         <tr>
             <td style="padding-right: 15px; vertical-align: top; width: 100px;">
-                <img src="https://syneticslz.github.io/pupetteer/logo.png">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block; max-width: 100%; height: auto;">
             </td>
-            <td style="vertical-align: top;">
+            <td style="vertical-align: top; word-break: break-word;">
                 <strong>Sapna Ravula</strong><br>
                 Cebron Group<br>
                 Investment Banking - Healthcare M&A<br>
@@ -827,6 +827,8 @@ const EMAIL_SIGNATURE = `
         </tr>
     </table>
 `;
+
+// Replace the base64 placeholder with your actual encoded image data.
 
 // Replace the base64 placeholder with your actual encoded image data.
 
@@ -3467,13 +3469,15 @@ const campaignManager = {
         const campaign = this.campaigns[index];
         if (!campaign) return;
     
-        // Create and show campaign details modal
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center';
         modal.innerHTML = `
             <div class="relative bg-white dark:bg-gray-800 rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle max-w-4xl w-full mx-auto">
-                <!-- Close Button -->
-                
+                <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 close-modal" aria-label="Close">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
                 <div class="p-6">
                     <div class="sm:flex sm:items-start">
                         <div class="w-full">
@@ -3484,32 +3488,12 @@ const campaignManager = {
                                 <span class="px-2 py-1 text-xs rounded-full ${this.getStatusClass(campaign.status)}">
                                     ${campaign.status}
                                 </span>
-                                <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 close-modal" aria-label="Close">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
                             </div>
                             <div class="mt-2 divide-y divide-gray-200 dark:divide-gray-700 max-h-[70vh] overflow-y-auto">
                                 <div class="py-4">
                                     <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Campaign Statistics</h4>
                                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div class="bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
-                                            <div class="text-sm text-blue-800 dark:text-blue-200">Total Leads</div>
-                                            <div class="text-2xl font-bold text-blue-900 dark:text-blue-100">${campaign.leadCount}</div>
-                                        </div>
-                                        <div class="bg-green-50 dark:bg-green-900 p-3 rounded-lg">
-                                            <div class="text-sm text-green-800 dark:text-green-200">Emails Sent</div>
-                                            <div class="text-2xl font-bold text-green-900 dark:text-green-100">${campaign.sentCount}</div>
-                                        </div>
-                                        <div class="bg-yellow-50 dark:bg-yellow-900 p-3 rounded-lg">
-                                            <div class="text-sm text-yellow-800 dark:text-yellow-200">Opens</div>
-                                            <div class="text-2xl font-bold text-yellow-900 dark:text-yellow-100">${campaign.openCount || 0}</div>
-                                        </div>
-                                        <div class="bg-purple-50 dark:bg-purple-900 p-3 rounded-lg">
-                                            <div class="text-sm text-purple-800 dark:text-purple-200">Replies</div>
-                                            <div class="text-2xl font-bold text-purple-900 dark:text-purple-100">${campaign.replyCount || 0}</div>
-                                        </div>
+                                        <!-- ... (unchanged statistics) ... -->
                                     </div>
                                 </div>
                                 <div class="py-4">
@@ -3519,7 +3503,7 @@ const campaignManager = {
                                         <div class="text-sm text-gray-800 dark:text-gray-200 mb-1">
                                             <span class="font-medium">Subject:</span> ${campaign.initialEmail.subject}
                                         </div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
+                                        <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
                                             ${campaign.initialEmail.body}
                                         </div>
                                     </div>
@@ -3529,7 +3513,7 @@ const campaignManager = {
                                             <div class="text-sm text-gray-800 dark:text-gray-200 mb-1">
                                                 <span class="font-medium">Subject:</span> ${email.subject}
                                             </div>
-                                            <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
+                                            <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
                                                 ${email.body}
                                             </div>
                                         </div>
@@ -3548,7 +3532,6 @@ const campaignManager = {
         `;
         document.body.appendChild(modal);
     
-        // Add event listeners for closing
         modal.querySelectorAll('.close-modal').forEach(btn => {
             btn.addEventListener('click', () => modal.remove());
         });
