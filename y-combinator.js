@@ -165,6 +165,11 @@ async function getRecentYCStartups(limit = 10) {
         // Close the browser
         await browser.close();
 
+        await require('fs').promises.writeFile(
+            'company.json', 
+            JSON.stringify(data, null, 2)
+        )
+
         // Return the data directly
         return detailedCompanies;
 

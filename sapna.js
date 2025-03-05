@@ -703,41 +703,70 @@ async function validateEmail(email) {
 }
 
 // Generate email content
+// function generateBasicEmail(metadata, websiteData = null) {
+//     const { company, contact } = metadata;
+    
+//     // Generate subject line using company details
+//     const subject = `Strategic Medical Device Manufacturing Partnership - ${company.name}`;
+
+//     // Build personalized intro based on available data
+//     const intro = `Dear ${contact.firstName}${contact.lastName ? ` ${contact.lastName}` : ''},
+
+// I hope this email finds you well. I noticed ${company.name}'s impressive work in the medical device manufacturing industry${
+//     company.revenue ? ` with annual revenue of ${company.revenue}` : ''
+// }${company.location ? `, based in ${company.location}` : ''}.`;
+
+//     // Build value proposition based on company size
+//     const valueProposition = company.employees && parseInt(company.employees) > 0 ? 
+//         `\n\nWith your team of ${company.employees} employees, I understand the complexity of managing large-scale medical device manufacturing operations.` :
+//         `\n\nAs a growing medical device manufacturer, I understand the challenges of scaling operations while maintaining quality and compliance.`;
+
+//     // Add specific details from website scraping if available
+//     const websiteInsights = websiteData?.data?.business?.categories?.industries ? 
+//         `\n\nYour focus on ${websiteData.data.business.categories.industries.join(', ')} aligns perfectly with our expertise.` : '';
+
+//     // Build the complete email body
+//     const body = `${intro}${valueProposition}${websiteInsights}
+
+// Our team specializes in helping medical device manufacturers:
+// - Optimize manufacturing processes while maintaining FDA compliance
+// - Reduce time-to-market for new devices
+// - Implement quality management systems that exceed industry standards
+// - Scale operations efficiently while maintaining margins
+
+// Would you be open to a brief call to discuss how we could support ${company.name}'s continued growth and success in the medical device market?
+
+// Best regards,
+// [Sender Name]${contact.linkedin ? `\n\nP.S. I'd welcome connecting on LinkedIn as well: ${contact.linkedin}` : ''}`;
+
+//     return {
+//         subject,
+//         body,
+//         metadata,
+//         confidence: calculateBasicConfidence(metadata)
+//     };
+// }
+
+
 function generateBasicEmail(metadata, websiteData = null) {
     const { company, contact } = metadata;
-    
-    // Generate subject line using company details
-    const subject = `Strategic Medical Device Manufacturing Partnership - ${company.name}`;
 
-    // Build personalized intro based on available data
-    const intro = `Dear ${contact.firstName}${contact.lastName ? ` ${contact.lastName}` : ''},
+    const subject = `Strategic Support for Selling Your Medical Device Business`;
 
-I hope this email finds you well. I noticed ${company.name}'s impressive work in the medical device manufacturing industry${
-    company.revenue ? ` with annual revenue of ${company.revenue}` : ''
-}${company.location ? `, based in ${company.location}` : ''}.`;
+    const body = `Hello ${contact.firstName || '[Name]'},
 
-    // Build value proposition based on company size
-    const valueProposition = company.employees && parseInt(company.employees) > 0 ? 
-        `\n\nWith your team of ${company.employees} employees, I understand the complexity of managing large-scale medical device manufacturing operations.` :
-        `\n\nAs a growing medical device manufacturer, I understand the challenges of scaling operations while maintaining quality and compliance.`;
+I would like to introduce our firm, Cebron Group. We are an investment banking firm specializing in healthcare M&A, with a focus on medical devices, medical device distribution and manufacturing, and medical equipment. We offer comprehensive advisory services tailored to maximize value for our clients during the sale process.
 
-    // Add specific details from website scraping if available
-    const websiteInsights = websiteData?.data?.business?.categories?.industries ? 
-        `\n\nYour focus on ${websiteData.data.business.categories.industries.join(', ')} aligns perfectly with our expertise.` : '';
+Our approach includes:
+- Extensive Market Access: We leverage our network of strategic buyers, private equity firms, and industry investors to ensure your business is presented to a broad range of qualified buyers.
+- In-Depth Valuation and Strategic Positioning: We conduct a detailed analysis to determine your business's optimal valuation and position it to attract competitive offers. This includes assessing growth potential, market position, and operational efficiencies${company.revenue ? `, especially considering your impressive revenue of ${company.revenue}` : ''}.
+- End-to-End Transaction Support: We manage every step of the transaction, from initial preparation to buyer identification, due diligence, and negotiation. Our team is experienced in structuring complex deals to achieve favorable terms for sellers.
+- Confidential and Efficient Process: We prioritize discretion and efficiency, ensuring that your business operations remain unaffected during the sale process while expediting timelines to closure.
 
-    // Build the complete email body
-    const body = `${intro}${valueProposition}${websiteInsights}
+If you are considering selling your business${company.name ? `, ${company.name}` : ''}, I would be glad to discuss how Cebron can deliver value and secure the best outcome for you. Please let me know if you are available for a 10-minute call.
 
-Our team specializes in helping medical device manufacturers:
-- Optimize manufacturing processes while maintaining FDA compliance
-- Reduce time-to-market for new devices
-- Implement quality management systems that exceed industry standards
-- Scale operations efficiently while maintaining margins
-
-Would you be open to a brief call to discuss how we could support ${company.name}'s continued growth and success in the medical device market?
-
-Best regards,
-[Sender Name]${contact.linkedin ? `\n\nP.S. I'd welcome connecting on LinkedIn as well: ${contact.linkedin}` : ''}`;
+Sapna Ravula
+Cebron Group`;
 
     return {
         subject,
