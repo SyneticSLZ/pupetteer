@@ -507,41 +507,113 @@ async function startCampaign(leadsData) {
         return;
     }
 
-    // Process each lead
+    // Fetch connected Gmail accounts
+    let mailboxId;
+    try {
+        const response = await fetch(`${API_BASE_URL}/mailboxes/${userUuid}`);
+        const data = await response.json();
+        if (!data.mailboxes || data.mailboxes.length === 0) {
+            showError('No Gmail accounts connected. Please connect an account first.');
+            return;
+        }
+        mailboxId = data.mailboxes[0]; // Use the first connected account
+    } catch (error) {
+        console.error('Error fetching mailboxes:', error);
+        showError('Failed to fetch Gmail accounts');
+        return;
+    }
+
+    // Prepare campaign data
+    const campaignName = `Medical Device Sale Campaign - ${new Date().toISOString().slice(0, 10)}`;
+    const emails = [];
+    const followUps = [
+        { waitDuration: 3, waitUnit: 'days', sequenceNumber: 1 },
+        { waitDuration: 7, waitUnit: 'days', sequenceNumber: 2 },
+        { waitDuration: 14, waitUnit: 'days', sequenceNumber: 3 }
+    ];
+
     for (const [index, lead] of leadsData.entries()) {
         try {
             const row = findRowByLeadData(table, lead);
-            if (!row) {
-                console.warn('Row not found for lead:', lead);
-                continue;
-            }
+            if (!row) continue;
 
-            // Update status to processing
             updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.EMAIL_GENERATION);
-            
-            // Process the lead
+
             const enrichedData = await processLead(lead, row);
             leadData.set(index, enrichedData);
-            
-            // Update UI
+
+            // Initial email
+            emails.push({
+                to: lead.email_1,
+                subject: enrichedData.emailData.subject,
+                body: enrichedData.emailData.body,
+                metadata: enrichedData.metadata
+            });
+
             updateRowStatus(row, PROCESSING_STATES.COMPLETED, 'Complete');
             addViewButton(row, index);
         } catch (error) {
             console.error('Error processing lead:', error);
             const row = findRowByLeadData(table, lead);
-            if (row) {
-                updateRowStatus(row, PROCESSING_STATES.FAILED, 'Processing failed');
-            }
+            if (row) updateRowStatus(row, PROCESSING_STATES.FAILED, 'Processing failed');
         }
+    }
+
+    // Schedule campaign with follow-ups
+    try {
+        const response = await fetch(`${API_BASE_URL}/campaign/schedule`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                uuid: userUuid,
+                mailboxId,
+                leads: emails,
+                campaignName,
+                sendInterval: 60, // 1 minute between emails
+                startDate: new Date().toISOString(),
+                settings: {
+                    trackOpens: true,
+                    trackClicks: true,
+                    stopOnReply: true,
+                    stopOnClick: false
+                },
+                followUps: followUps.map(f => ({
+                    subject: generateFollowUpEmail(emails[0].metadata, f.sequenceNumber).subject,
+                    body: generateFollowUpEmail(emails[0].metadata, f.sequenceNumber).body,
+                    waitDuration: f.waitDuration,
+                    waitUnit: f.waitUnit
+                }))
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            showToast(`Campaign "${campaignName}" scheduled successfully!`, 'success');
+            campaignManager.campaigns.push({
+                id: result.campaignId,
+                name: campaignName,
+                sendingAccount: mailboxId,
+                initialEmail: { subject: emails[0].subject, body: emails[0].body },
+                followUpEmails: followUps.map(f => generateFollowUpEmail(emails[0].metadata, f.sequenceNumber)),
+                leadCount: emails.length,
+                sentCount: 0,
+                status: 'Scheduled',
+                createdAt: new Date().toISOString(),
+                nextFollowUp: new Date().toISOString()
+            });
+            campaignManager.renderCampaignsList();
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('Error scheduling campaign:', error);
+        showError('Failed to schedule campaign: ' + error.message);
     }
 
     showCompletionModal(leadsData.length);
 }
-
-// Process individual lead
 async function processLead(lead, row) {
     try {
-        // Base metadata that will always work
         const metadata = {
             company: {
                 name: lead.company || '',
@@ -561,76 +633,175 @@ async function processLead(lead, row) {
             }
         };
 
-        // Try to get enhanced data but don't fail if it doesn't work
         let websiteData = null;
         let emailValidation = null;
 
         if (lead.website) {
-            try {
-                updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, 'Scraping website data');
-                websiteData = await processWebsiteData(lead.website);
-            } catch (error) {
-                console.warn('Website scraping failed:', error);
-                // Continue without website data
-            }
+            updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, 'Scraping website data');
+            websiteData = await processWebsiteData(lead.website);
         }
 
         if (lead.email_1) {
-            try {
-                updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.EMAIL_VERIFICATION);
-                emailValidation = await validateEmail(lead.email_1);
-            } catch (error) {
-                console.warn('Email validation failed:', error);
-                // Continue without email validation
-            }
+            updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.EMAIL_VERIFICATION);
+            emailValidation = await validateEmail(lead.email_1);
         }
 
-        // Generate email content with available data
         updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, 'Generating email');
         const emailData = generateBasicEmail(metadata, websiteData);
 
-        // Always return data object with fallbacks
         return {
             lead,
             emailData,
-            websiteData: websiteData || {
-                data: {
-                    business: {
-                        categories: { industries: ['Medical Device Manufacturing'] }
-                    }
-                }
-            },
-            emailValidation: emailValidation || {
-                isValid: true,
-                confidence: 70,
-                details: { info: 'Basic validation only' }
-            },
+            websiteData: websiteData || { data: { business: { categories: { industries: ['Medical Device Manufacturing'] } } } },
+            emailValidation: emailValidation || { isValid: true, confidence: 70, details: { info: 'Basic validation only' } },
             metadata
         };
     } catch (error) {
         console.error('Error in processLead:', error);
-        // Return basic data even if something fails
         return {
             lead,
-            emailData: generateBasicEmail({
-                company: { name: lead.company },
-                contact: { 
-                    firstName: lead.first_name,
-                    lastName: lead.last_name,
-                    title: lead.title,
-                    email: lead.email_1
-                }
-            }),
-            metadata: {
-                company: { name: lead.company },
-                contact: { 
-                    firstName: lead.first_name,
-                    lastName: lead.last_name
-                }
-            }
+            emailData: generateBasicEmail({ company: { name: lead.company }, contact: { firstName: lead.first_name, lastName: lead.last_name, title: lead.title, email: lead.email_1 } }),
+            metadata: { company: { name: lead.company }, contact: { firstName: lead.first_name, lastName: lead.last_name } }
         };
     }
 }
+
+// async function startCampaign(leadsData) {
+//     if (!leadsData || !leadsData.length) {
+//         showError('No leads data provided');
+//         return;
+//     }
+
+//     const table = document.querySelector('#leads-table table');
+//     if (!table) {
+//         showError('Table not found');
+//         return;
+//     }
+
+//     // Process each lead
+//     for (const [index, lead] of leadsData.entries()) {
+//         try {
+//             const row = findRowByLeadData(table, lead);
+//             if (!row) {
+//                 console.warn('Row not found for lead:', lead);
+//                 continue;
+//             }
+
+//             // Update status to processing
+//             updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.EMAIL_GENERATION);
+            
+//             // Process the lead
+//             const enrichedData = await processLead(lead, row);
+//             leadData.set(index, enrichedData);
+            
+//             // Update UI
+//             updateRowStatus(row, PROCESSING_STATES.COMPLETED, 'Complete');
+//             addViewButton(row, index);
+//         } catch (error) {
+//             console.error('Error processing lead:', error);
+//             const row = findRowByLeadData(table, lead);
+//             if (row) {
+//                 updateRowStatus(row, PROCESSING_STATES.FAILED, 'Processing failed');
+//             }
+//         }
+//     }
+
+//     showCompletionModal(leadsData.length);
+// }
+
+// Process individual lead
+// async function processLead(lead, row) {
+//     try {
+//         // Base metadata that will always work
+//         const metadata = {
+//             company: {
+//                 name: lead.company || '',
+//                 revenue: lead.revenue || '',
+//                 employees: lead.employees || '',
+//                 location: `${lead.city || ''}, ${lead.state || ''}`,
+//                 industry: lead.industry || 'Medical Device Manufacturing',
+//                 website: lead.website || ''
+//             },
+//             contact: {
+//                 firstName: lead.first_name || '',
+//                 lastName: lead.last_name || '',
+//                 title: lead.title || '',
+//                 email: lead.email_1 || '',
+//                 email2: lead.email_2 || '',
+//                 linkedin: lead.linkedin || ''
+//             }
+//         };
+
+//         // Try to get enhanced data but don't fail if it doesn't work
+//         let websiteData = null;
+//         let emailValidation = null;
+
+//         if (lead.website) {
+//             try {
+//                 updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, 'Scraping website data');
+//                 websiteData = await processWebsiteData(lead.website);
+//             } catch (error) {
+//                 console.warn('Website scraping failed:', error);
+//                 // Continue without website data
+//             }
+//         }
+
+//         if (lead.email_1) {
+//             try {
+//                 updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.EMAIL_VERIFICATION);
+//                 emailValidation = await validateEmail(lead.email_1);
+//             } catch (error) {
+//                 console.warn('Email validation failed:', error);
+//                 // Continue without email validation
+//             }
+//         }
+
+//         // Generate email content with available data
+//         updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, 'Generating email');
+//         const emailData = generateBasicEmail(metadata, websiteData);
+
+//         // Always return data object with fallbacks
+//         return {
+//             lead,
+//             emailData,
+//             websiteData: websiteData || {
+//                 data: {
+//                     business: {
+//                         categories: { industries: ['Medical Device Manufacturing'] }
+//                     }
+//                 }
+//             },
+//             emailValidation: emailValidation || {
+//                 isValid: true,
+//                 confidence: 70,
+//                 details: { info: 'Basic validation only' }
+//             },
+//             metadata
+//         };
+//     } catch (error) {
+//         console.error('Error in processLead:', error);
+//         // Return basic data even if something fails
+//         return {
+//             lead,
+//             emailData: generateBasicEmail({
+//                 company: { name: lead.company },
+//                 contact: { 
+//                     firstName: lead.first_name,
+//                     lastName: lead.last_name,
+//                     title: lead.title,
+//                     email: lead.email_1
+//                 }
+//             }),
+//             metadata: {
+//                 company: { name: lead.company },
+//                 contact: { 
+//                     firstName: lead.first_name,
+//                     lastName: lead.last_name
+//                 }
+//             }
+//         };
+//     }
+// }
 
 // Process website data
 async function processWebsiteData(url) {
@@ -789,6 +960,71 @@ function calculateBasicConfidence(metadata) {
     if (metadata.company.employees) score += 5;
     
     return Math.min(score, 100);
+}
+
+function generateFollowUpEmail(metadata, sequenceNumber) {
+    const { company, contact } = metadata;
+    let subject, body;
+
+    switch (sequenceNumber) {
+        case 1:
+            subject = `Strategic Insights for Selling Your Medical Device Business`;
+            body = `Hello ${contact.firstName || '[Name]'},
+
+Following up on my previous message, I want to provide more clarity on how Cebron Group can drive value during the sale process of your ${company.name ? `${company.name}` : 'home medical device'} business.
+
+We specialize in designing tailored strategies based on your company's unique strengths, market trends, and competitive positioning${company.industry ? ` within the ${company.industry} sector` : ''}. Our expertise in the healthcare sector allows us to identify high-value opportunities that align with seller demands, ensuring optimal pricing and terms.
+
+If you’re interested in exploring this further, I’d be happy to discuss a more detailed plan during a brief call.
+
+Sapna Ravula
+Cebron Group`;
+            break;
+
+        case 2:
+            subject = `Ensuring Transaction Readiness for Your Medical Device Business`;
+            body = `Hello ${contact.firstName || '[Name]'},
+
+I am following up to emphasize one of Cebron Group’s core capabilities: preparing businesses for a transaction-ready state. We conduct a comprehensive analysis to identify potential issues affecting valuation or deal success${company.revenue ? `, such as optimizing your ${company.revenue} revenue stream` : ''}, allowing us to address these proactively.
+
+By preparing your business${company.name ? `, ${company.name},` : ''} thoroughly before engaging buyers, we ensure a smoother negotiation process and maximize competitive tension among potential acquirers.
+
+If you would like to explore this process in more depth, please let me know when you’re available for a 10-minute call.
+
+Sapna Ravula
+Cebron Group`;
+            break;
+
+        case 3:
+            subject = `Using Cebron Group's M&A Expertise for Your Sale Process`;
+            body = `Hello ${contact.firstName || '[Name]'},
+
+As a follow-up to our previous emails, I’d like to emphasize what differentiates Cebron in managing M&A transactions for medical device businesses${company.name ? ` like ${company.name}` : ''}.
+
+Our team combines sector-specific insights with financial expertise, providing clients with a clear understanding of deal structures and valuation drivers. We secure offers and enhance terms that deliver higher seller value—whether through cash consideration, earnouts, or equity rollovers, depending on your strategic goals${company.employees ? ` and the scale of your ${company.employees}-employee operation` : ''}.
+
+If you are interested in discussing our approach and how it can benefit your business, please let me know your availability for a brief call.
+
+Sapna Ravula
+Cebron Group`;
+            break;
+
+        default:
+            subject = `Follow-Up: Exploring Opportunities with ${company.name || 'Your Business'}`;
+            body = `Hello ${contact.firstName || '[Name]'},
+
+Just checking in regarding our previous discussions about supporting ${company.name || 'your business'} through the sale process. Please let me know if you’d like to connect for a quick call.
+
+Sapna Ravula
+Cebron Group`;
+    }
+
+    return {
+        subject,
+        body,
+        metadata,
+        confidence: calculateBasicConfidence(metadata)
+    };
 }
 
 // Update row status in table
