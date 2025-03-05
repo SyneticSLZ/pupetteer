@@ -249,17 +249,15 @@ function resetFileInput() {
     if (campaignPreview) campaignPreview.classList.add('hidden');
     
     selectedLeads.clear();
+    leadData.clear();
 }
 
 // Process Excel file
 async function processExcelFile(file) {
     const leadsSkeleton = document.getElementById('leads-skeleton');
     const leadsTable = document.getElementById('leads-table');
-    
-    // Show loading state
     if (leadsSkeleton) leadsSkeleton.classList.remove('hidden');
     if (leadsTable) leadsTable.classList.add('hidden');
-    
     try {
         const data = await handleExcelFile(file);
         if (data && data.length > 0) {
@@ -272,7 +270,6 @@ async function processExcelFile(file) {
         showError('Error processing Excel file: ' + error.message);
         resetFileInput();
     } finally {
-        // Hide loading state
         if (leadsSkeleton) leadsSkeleton.classList.add('hidden');
     }
 }
@@ -472,6 +469,18 @@ function createLeadsTable(data) {
         leadsTable.appendChild(table);
 
         // Add event listeners for buttons
+        // document.getElementById('start-campaign')?.addEventListener('click', function() {
+        //     this.disabled = true;
+        //     this.innerHTML = `
+        //         <div class="flex items-center space-x-2">
+        //             <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+        //             <span>Processing...</span>
+        //         </div>
+        //     `;
+        //     this.className += ' opacity-75 cursor-not-allowed';
+        //     startCampaign(data);
+        // });
+
         document.getElementById('start-campaign')?.addEventListener('click', function() {
             this.disabled = true;
             this.innerHTML = `
@@ -481,7 +490,7 @@ function createLeadsTable(data) {
                 </div>
             `;
             this.className += ' opacity-75 cursor-not-allowed';
-            startCampaign(data);
+            createAndStartCampaign(data); // Use centralized function
         });
 
         document.getElementById('verify-leads-button')?.addEventListener('click', function() {
@@ -492,6 +501,137 @@ function createLeadsTable(data) {
         console.error('Error creating table:', error);
         showError(error.message);
     }
+}
+
+async function createAndStartCampaign(leadsData, source = 'upload') {
+    if (!leadsData || !leadsData.length) {
+        showError('No leads data provided');
+        return;
+    }
+
+    let mailboxId;
+    try {
+        const response = await fetch(`${API_BASE_URL}/mailboxes/${userUuid}`);
+        const data = await response.json();
+        if (!data.mailboxes || data.mailboxes.length === 0) {
+            showError('No Gmail accounts connected. Please connect an account first.');
+            return;
+        }
+        mailboxId = data.mailboxes[0];
+    } catch (error) {
+        console.error('Error fetching mailboxes:', error);
+        showError('Failed to fetch Gmail accounts');
+        return;
+    }
+
+    const campaignName = `Medical Device Sale Campaign - ${new Date().toISOString().slice(0, 10)}`;
+    const emails = [];
+    const followUps = [
+        { waitDuration: 3, waitUnit: 'days', sequenceNumber: 1 },
+        { waitDuration: 7, waitUnit: 'days', sequenceNumber: 2 },
+        { waitDuration: 14, waitUnit: 'days', sequenceNumber: 3 }
+    ];
+
+    for (const [index, lead] of leadsData.entries()) {
+        try {
+            const row = findRowByLeadData(document.querySelector('#leads-table table'), lead);
+            if (!row) continue;
+
+            updateRowStatus(row, PROCESSING_STATES.IN_PROGRESS, TASKS.EMAIL_GENERATION);
+
+            const enrichedData = await processLead(lead, row);
+            leadData.set(index, enrichedData);
+
+            emails.push({
+                to: lead.email_1,
+                subject: enrichedData.emailData.subject,
+                body: enrichedData.emailData.body,
+                metadata: enrichedData.metadata
+            });
+
+            updateRowStatus(row, PROCESSING_STATES.COMPLETED, 'Complete');
+            addViewButton(row, index);
+        } catch (error) {
+            console.error('Error processing lead:', error);
+            const row = findRowByLeadData(document.querySelector('#leads-table table'), lead);
+            if (row) updateRowStatus(row, PROCESSING_STATES.FAILED, 'Processing failed');
+        }
+    }
+
+    // Schedule campaign
+    try {
+        const response = await fetch(`${API_BASE_URL}/campaign/schedule`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                uuid: userUuid,
+                mailboxId,
+                leads: emails,
+                campaignName,
+                sendInterval: 60,
+                startDate: new Date().toISOString(),
+                settings: { trackOpens: true, trackClicks: true, stopOnReply: true, stopOnClick: false },
+                followUps: followUps.map(f => ({
+                    subject: generateFollowUpEmail(emails[0].metadata, f.sequenceNumber).subject,
+                    body: generateFollowUpEmail(emails[0].metadata, f.sequenceNumber).body,
+                    waitDuration: f.waitDuration,
+                    waitUnit: f.waitUnit
+                }))
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            const campaign = {
+                id: result.campaignId,
+                name: campaignName,
+                sendingAccount: mailboxId,
+                initialEmail: { subject: emails[0].subject, body: emails[0].body },
+                followUpEmails: followUps.map(f => generateFollowUpEmail(emails[0].metadata, f.sequenceNumber)),
+                leadCount: emails.length,
+                sentCount: 0, // Will update via polling
+                status: 'Scheduled',
+                createdAt: new Date().toISOString(),
+                nextFollowUp: new Date().toISOString()
+            };
+            campaignManager.campaigns.push(campaign);
+            localStorage.setItem('campaigns', JSON.stringify(campaignManager.campaigns));
+            campaignManager.renderCampaignsList();
+            showToast(`Campaign "${campaignName}" scheduled successfully!`, 'success');
+
+            // Start polling for status updates
+            startCampaignStatusPolling(campaign.id);
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('Error scheduling campaign:', error);
+        showError('Failed to schedule campaign: ' + error.message);
+    }
+
+    showCompletionModal(leadsData.length);
+}
+
+// New function to poll campaign status
+function startCampaignStatusPolling(campaignId) {
+    const interval = setInterval(async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/campaigns/${userUuid}/${campaignId}`);
+            const data = await response.json();
+            if (data.success) {
+                const campaign = campaignManager.campaigns.find(c => c.id === campaignId);
+                if (campaign) {
+                    campaign.sentCount = data.campaigns[0].sentCount || 0;
+                    campaign.status = data.campaigns[0].status || 'Scheduled';
+                    localStorage.setItem('campaigns', JSON.stringify(campaignManager.campaigns));
+                    campaignManager.renderCampaignsList();
+                }
+            }
+        } catch (error) {
+            console.error('Error polling campaign status:', error);
+            clearInterval(interval); // Stop polling on error
+        }
+    }, 30000); // Poll every 30 seconds
 }
 
 // Process leads for campaign
@@ -2684,10 +2824,82 @@ const campaignManager = {
         reader.readAsArrayBuffer(file);
     },
     
+    // renderCampaignsList: function() {
+    //     const campaignsList = document.getElementById('campaigns-list');
+    //     if (!campaignsList) return;
+        
+    //     if (this.campaigns.length === 0) {
+    //         campaignsList.innerHTML = `
+    //             <tr>
+    //                 <td colspan="6" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+    //                     No campaigns created yet.
+    //                 </td>
+    //             </tr>
+    //         `;
+    //         return;
+    //     }
+        
+    //     campaignsList.innerHTML = '';
+        
+    //     this.campaigns.forEach((campaign, index) => {
+    //         const row = document.createElement('tr');
+    //         row.innerHTML = `
+    //             <td class="px-6 py-4 whitespace-nowrap">
+    //                 <div class="font-medium text-gray-900 dark:text-white">${campaign.name}</div>
+    //             </td>
+    //             <td class="px-6 py-4 whitespace-nowrap">
+    //                 <span class="px-2 py-1 text-xs rounded-full ${this.getStatusClass(campaign.status)}">
+    //                     ${campaign.status}
+    //                 </span>
+    //             </td>
+    //             <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
+    //                 ${campaign.leadCount}
+    //             </td>
+    //             <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
+    //                 ${campaign.sentCount} / ${campaign.leadCount}
+    //             </td>
+    //             <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
+    //                 ${campaign.nextFollowUp ? new Date(campaign.nextFollowUp).toLocaleString() : 'N/A'}
+    //             </td>
+    //             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+    //                 <button data-campaign-index="${index}" class="view-campaign text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3">
+    //                     View
+    //                 </button>
+    //                 <button data-campaign-index="${index}" class="pause-campaign ${campaign.status === 'Paused' ? 'hidden' : ''} text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 mr-3">
+    //                     Pause
+    //                 </button>
+    //                 <button data-campaign-index="${index}" class="resume-campaign ${campaign.status !== 'Paused' ? 'hidden' : ''} text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3">
+    //                     Resume
+    //                 </button>
+    //                 <button data-campaign-index="${index}" class="delete-campaign text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+    //                     Delete
+    //                 </button>
+    //             </td>
+    //         `;
+            
+    //         campaignsList.appendChild(row);
+            
+    //         // Add event listeners
+    //         row.querySelector('.view-campaign')?.addEventListener('click', () => {
+    //             this.viewCampaign(index);
+    //         });
+            
+    //         row.querySelector('.pause-campaign')?.addEventListener('click', () => {
+    //             this.pauseCampaign(index);
+    //         });
+            
+    //         row.querySelector('.resume-campaign')?.addEventListener('click', () => {
+    //             this.resumeCampaign(index);
+    //         });
+            
+    //         row.querySelector('.delete-campaign')?.addEventListener('click', () => {
+    //             this.deleteCampaign(index);
+    //         });
+    //     });
+    // },
     renderCampaignsList: function() {
         const campaignsList = document.getElementById('campaigns-list');
         if (!campaignsList) return;
-        
         if (this.campaigns.length === 0) {
             campaignsList.innerHTML = `
                 <tr>
@@ -2698,64 +2910,26 @@ const campaignManager = {
             `;
             return;
         }
-        
-        campaignsList.innerHTML = '';
-        
-        this.campaigns.forEach((campaign, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="font-medium text-gray-900 dark:text-white">${campaign.name}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 py-1 text-xs rounded-full ${this.getStatusClass(campaign.status)}">
-                        ${campaign.status}
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                    ${campaign.leadCount}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                    ${campaign.sentCount} / ${campaign.leadCount}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                    ${campaign.nextFollowUp ? new Date(campaign.nextFollowUp).toLocaleString() : 'N/A'}
-                </td>
+        campaignsList.innerHTML = this.campaigns.map((campaign, index) => `
+            <tr>
+                <td class="px-6 py-4 whitespace-nowrap"><div class="font-medium text-gray-900 dark:text-white">${campaign.name}</div></td>
+                <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs rounded-full ${this.getStatusClass(campaign.status)}">${campaign.status}</span></td>
+                <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">${campaign.leadCount}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">${campaign.sentCount} / ${campaign.leadCount}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">${campaign.nextFollowUp ? new Date(campaign.nextFollowUp).toLocaleString() : 'N/A'}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button data-campaign-index="${index}" class="view-campaign text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3">
-                        View
-                    </button>
-                    <button data-campaign-index="${index}" class="pause-campaign ${campaign.status === 'Paused' ? 'hidden' : ''} text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 mr-3">
-                        Pause
-                    </button>
-                    <button data-campaign-index="${index}" class="resume-campaign ${campaign.status !== 'Paused' ? 'hidden' : ''} text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3">
-                        Resume
-                    </button>
-                    <button data-campaign-index="${index}" class="delete-campaign text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
-                        Delete
-                    </button>
+                    <button data-campaign-index="${index}" class="view-campaign text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3">View</button>
+                    <button data-campaign-index="${index}" class="pause-campaign ${campaign.status === 'Paused' ? 'hidden' : ''} text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 mr-3">Pause</button>
+                    <button data-campaign-index="${index}" class="resume-campaign ${campaign.status !== 'Paused' ? 'hidden' : ''} text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3">Resume</button>
+                    <button data-campaign-index="${index}" class="delete-campaign text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Delete</button>
                 </td>
-            `;
-            
-            campaignsList.appendChild(row);
-            
-            // Add event listeners
-            row.querySelector('.view-campaign')?.addEventListener('click', () => {
-                this.viewCampaign(index);
-            });
-            
-            row.querySelector('.pause-campaign')?.addEventListener('click', () => {
-                this.pauseCampaign(index);
-            });
-            
-            row.querySelector('.resume-campaign')?.addEventListener('click', () => {
-                this.resumeCampaign(index);
-            });
-            
-            row.querySelector('.delete-campaign')?.addEventListener('click', () => {
-                this.deleteCampaign(index);
-            });
-        });
+            </tr>
+        `).join('');
+        // Add event listeners
+        campaignsList.querySelectorAll('.view-campaign').forEach(btn => btn.addEventListener('click', () => this.viewCampaign(btn.dataset.campaignIndex)));
+        campaignsList.querySelectorAll('.pause-campaign').forEach(btn => btn.addEventListener('click', () => this.pauseCampaign(btn.dataset.campaignIndex)));
+        campaignsList.querySelectorAll('.resume-campaign').forEach(btn => btn.addEventListener('click', () => this.resumeCampaign(btn.dataset.campaignIndex)));
+        campaignsList.querySelectorAll('.delete-campaign').forEach(btn => btn.addEventListener('click', () => this.deleteCampaign(btn.dataset.campaignIndex)));
     },
     
     getStatusClass: function(status) {
@@ -2819,132 +2993,171 @@ const campaignManager = {
         this.followUpCount = followUps.length;
     },
     
+    // createCampaign: function() {
+    //     // Validate form
+    //     const campaignName = document.getElementById('campaign-name')?.value;
+    //     const sendingAccount = document.getElementById('sending-account')?.value;
+        
+    //     if (!campaignName) {
+    //         showError('Please enter a campaign name');
+    //         return;
+    //     }
+        
+    //     if (!sendingAccount) {
+    //         showError('Please select a sending account');
+    //         return;
+    //     }
+        
+    //     // Get leads
+    //     const leadSource = document.getElementById('lead-source')?.value;
+    //     let leads = [];
+        
+    //     if (leadSource === 'current') {
+    //         if (this.currentLeads.length === 0) {
+    //             showError('No leads available in the current table');
+    //             return;
+    //         }
+    //         leads = this.currentLeads;
+    //     } else if (leadSource === 'upload') {
+    //         if (!this.uploadedLeads || this.uploadedLeads.length === 0) {
+    //             showError('Please upload a leads file');
+    //             return;
+    //         }
+    //         leads = this.uploadedLeads;
+    //     }
+        
+    //     // Get email sequence
+    //     const initialSubject = document.querySelector('.email-subject')?.value;
+    //     const initialBody = document.querySelector('.email-body')?.value;
+    //     const initialDate = document.querySelector('.email-date')?.value;
+    //     const initialSpeed = document.querySelector('.email-speed')?.value;
+        
+    //     if (!initialSubject || !initialBody) {
+    //         showError('Please enter subject and body for the initial email');
+    //         return;
+    //     }
+        
+    //     const initialEmail = {
+    //         subject: initialSubject,
+    //         body: initialBody,
+    //         sendDate: initialDate || new Date().toISOString().slice(0, 16), // Set to now if empty
+    //         sendSpeed: initialSpeed || 'medium'
+    //     };
+        
+    //     // Get follow-up emails
+    //     const followUpEmails = [];
+    //     const followUpContainers = document.querySelectorAll('.follow-up-email');
+        
+    //     followUpContainers.forEach((container, index) => {
+    //         const subject = container.querySelector('.email-subject')?.value;
+    //         const body = container.querySelector('.email-body')?.value;
+    //         const waitDuration = parseInt(container.querySelector('.wait-duration')?.value) || 1;
+    //         const waitUnit = container.querySelector('.wait-unit')?.value;
+            
+    //         if (subject && body) {
+    //             followUpEmails.push({
+    //                 subject,
+    //                 body,
+    //                 waitDuration,
+    //                 waitUnit
+    //             });
+    //         }
+    //     });
+        
+    //     // Get additional settings
+    //     const trackOpens = document.getElementById('track-opens')?.checked;
+    //     const trackClicks = document.getElementById('track-clicks')?.checked;
+    //     const stopOnReply = document.getElementById('stop-on-reply')?.checked;
+    //     const stopOnClick = document.getElementById('stop-on-click')?.checked;
+        
+    //     // Create campaign object
+    //     const campaign = {
+    //         id: Date.now().toString(),
+    //         name: campaignName,
+    //         sendingAccount: sendingAccount,
+    //         leads: leads,
+    //         leadCount: leads.length,
+    //         initialEmail: initialEmail,
+    //         followUpEmails: followUpEmails,
+    //         settings: {
+    //             trackOpens: trackOpens || false,
+    //             trackClicks: trackClicks || false,
+    //             stopOnReply: stopOnReply || true,
+    //             stopOnClick: stopOnClick || false
+    //         },
+    //         status: 'Active',
+    //         sentCount: 0,
+    //         openCount: 0,
+    //         clickCount: 0,
+    //         replyCount: 0,
+    //         createdAt: new Date().toISOString(),
+    //         nextFollowUp: initialEmail.sendDate
+    //     };
+        
+    //     // Add to campaigns list
+    //     this.campaigns.push(campaign);
+        
+    //     // Save to localStorage
+    //     localStorage.setItem('campaigns', JSON.stringify(this.campaigns));
+        
+    //     // In a real app, you would send this to your backend
+    //     // fetch(`${API_BASE_URL}/campaigns`, {
+    //     //     method: 'POST',
+    //     //     headers: {
+    //     //         'Content-Type': 'application/json'
+    //     //     },
+    //     //     body: JSON.stringify({
+    //     //         uuid: userUuid,
+    //     //         campaign: campaign
+    //     //     })
+    //     // })
+        
+    //     // Hide modal and update UI
+    //     this.hideCampaignModal();
+    //     this.renderCampaignsList();
+    //     showToast('Campaign created successfully', 'success');
+        
+    //     // In a real app, you would start the campaign here
+    //     // this.startCampaign(campaign);
+    // },
+
     createCampaign: function() {
-        // Validate form
         const campaignName = document.getElementById('campaign-name')?.value;
         const sendingAccount = document.getElementById('sending-account')?.value;
-        
+    
         if (!campaignName) {
             showError('Please enter a campaign name');
             return;
         }
-        
         if (!sendingAccount) {
             showError('Please select a sending account');
             return;
         }
-        
-        // Get leads
-        const leadSource = document.getElementById('lead-source')?.value;
+    
         let leads = [];
-        
-        if (leadSource === 'current') {
-            if (this.currentLeads.length === 0) {
-                showError('No leads available in the current table');
-                return;
-            }
+        const leadSource = document.getElementById('lead-source')?.value;
+        if (leadSource === 'current' && this.currentLeads.length > 0) {
             leads = this.currentLeads;
-        } else if (leadSource === 'upload') {
-            if (!this.uploadedLeads || this.uploadedLeads.length === 0) {
-                showError('Please upload a leads file');
-                return;
-            }
+        } else if (leadSource === 'upload' && this.uploadedLeads && this.uploadedLeads.length > 0) {
             leads = this.uploadedLeads;
-        }
-        
-        // Get email sequence
-        const initialSubject = document.querySelector('.email-subject')?.value;
-        const initialBody = document.querySelector('.email-body')?.value;
-        const initialDate = document.querySelector('.email-date')?.value;
-        const initialSpeed = document.querySelector('.email-speed')?.value;
-        
-        if (!initialSubject || !initialBody) {
-            showError('Please enter subject and body for the initial email');
+        } else {
+            showError('No leads available. Upload a file or use current leads.');
             return;
         }
-        
-        const initialEmail = {
-            subject: initialSubject,
-            body: initialBody,
-            sendDate: initialDate || new Date().toISOString().slice(0, 16), // Set to now if empty
-            sendSpeed: initialSpeed || 'medium'
-        };
-        
-        // Get follow-up emails
-        const followUpEmails = [];
-        const followUpContainers = document.querySelectorAll('.follow-up-email');
-        
-        followUpContainers.forEach((container, index) => {
-            const subject = container.querySelector('.email-subject')?.value;
-            const body = container.querySelector('.email-body')?.value;
-            const waitDuration = parseInt(container.querySelector('.wait-duration')?.value) || 1;
-            const waitUnit = container.querySelector('.wait-unit')?.value;
-            
-            if (subject && body) {
-                followUpEmails.push({
-                    subject,
-                    body,
-                    waitDuration,
-                    waitUnit
-                });
-            }
-        });
-        
-        // Get additional settings
-        const trackOpens = document.getElementById('track-opens')?.checked;
-        const trackClicks = document.getElementById('track-clicks')?.checked;
-        const stopOnReply = document.getElementById('stop-on-reply')?.checked;
-        const stopOnClick = document.getElementById('stop-on-click')?.checked;
-        
-        // Create campaign object
-        const campaign = {
-            id: Date.now().toString(),
-            name: campaignName,
-            sendingAccount: sendingAccount,
-            leads: leads,
-            leadCount: leads.length,
-            initialEmail: initialEmail,
-            followUpEmails: followUpEmails,
-            settings: {
-                trackOpens: trackOpens || false,
-                trackClicks: trackClicks || false,
-                stopOnReply: stopOnReply || true,
-                stopOnClick: stopOnClick || false
-            },
-            status: 'Active',
-            sentCount: 0,
-            openCount: 0,
-            clickCount: 0,
-            replyCount: 0,
-            createdAt: new Date().toISOString(),
-            nextFollowUp: initialEmail.sendDate
-        };
-        
-        // Add to campaigns list
-        this.campaigns.push(campaign);
-        
-        // Save to localStorage
-        localStorage.setItem('campaigns', JSON.stringify(this.campaigns));
-        
-        // In a real app, you would send this to your backend
-        // fetch(`${API_BASE_URL}/campaigns`, {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json'
-        //     },
-        //     body: JSON.stringify({
-        //         uuid: userUuid,
-        //         campaign: campaign
-        //     })
-        // })
-        
-        // Hide modal and update UI
+    
+        const initialSubject = document.querySelector('.email-subject')?.value || generateBasicEmail(leads[0]).subject;
+        const initialBody = document.querySelector('.email-body')?.value || generateBasicEmail(leads[0]).body;
+        const initialDate = document.querySelector('.email-date')?.value || new Date().toISOString().slice(0, 16);
+        const initialSpeed = document.querySelector('.email-speed')?.value || 'medium';
+    
+        const emails = leads.map(lead => ({
+            to: lead.email,
+            subject: replacePlaceholders(initialSubject, lead),
+            body: replacePlaceholders(initialBody, lead)
+        }));
+    
+        createAndStartCampaign(leads, 'manager'); // Use centralized function
         this.hideCampaignModal();
-        this.renderCampaignsList();
-        showToast('Campaign created successfully', 'success');
-        
-        // In a real app, you would start the campaign here
-        // this.startCampaign(campaign);
     },
     
     viewCampaign: function(index) {
