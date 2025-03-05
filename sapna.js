@@ -512,9 +512,9 @@ document.getElementById('start-campaign')?.addEventListener('click', async funct
     }
 });
 
-        document.getElementById('verify-leads-button')?.addEventListener('click', function() {
-            verifyAndPrepareLeads(data);
-        });
+        // document.getElementById('verify-leads-button')?.addEventListener('click', function() {
+        //     verifyAndPrepareLeads(data);
+        // });
 
     } catch (error) {
         console.error('Error creating table:', error);
@@ -793,22 +793,24 @@ async function startCampaign(leadsData) {
 
 const EMAIL_SIGNATURE = `
     <br><br>
-    <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 12px; color: #333;">
+    <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 12px; color: #333; width: 100%; max-width: 400px;">
         <tr>
-            <td style="padding-right: 15px; vertical-align: top;">
-                <img src="https://syneticslz.github.io/pupetteer/logo.png" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block;">
+            <td style="padding-right: 15px; vertical-align: top; width: 100px;">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block;">
             </td>
             <td style="vertical-align: top;">
                 <strong>Sapna Ravula</strong><br>
                 Cebron Group<br>
                 Investment Banking - Healthcare M&A<br>
                 Phone: +1-123-456-7890<br>
-                Email: sapna.ravula@cebrongroup.com<br>
+                Email: <a href="mailto:sapna.ravula@cebrongroup.com" style="color: #007BFF; text-decoration: none;">sapna.ravula@cebrongroup.com</a><br>
                 Website: <a href="https://www.cebrongroup.com" style="color: #007BFF; text-decoration: none;">www.cebrongroup.com</a>
             </td>
         </tr>
     </table>
 `;
+
+// Replace the base64 placeholder with your actual encoded image data.
 
 async function processLead(lead, row) {
     try {
@@ -1115,7 +1117,56 @@ async function validateEmail(email) {
 //         confidence: calculateBasicConfidence(metadata)
 //     };
 // }
+async function verifyAndPrepareLeads(leadsData) {
+    const leadsSkeleton = document.getElementById('leads-skeleton');
+    if (leadsSkeleton) leadsSkeleton.classList.remove('hidden');
 
+    try {
+        const verifiedLeads = await Promise.all(leadsData.map(async lead => {
+            if (lead.email_1) {
+                const response = await fetch(`${API_BASE_URL}/verify-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: lead.email_1 })
+                });
+                const data = await response.json();
+                return { ...lead, emailValidation: data.result || { isValid: true, confidence: 70 } };
+            }
+            return lead;
+        }));
+
+        // Show verified campaign modal
+        const modal = document.createElement('div');
+        modal.innerHTML = document.getElementById('verified-campaign-template').innerHTML;
+        document.body.appendChild(modal);
+        createVerifiedCampaign(modal.firstChild, verifiedLeads.filter(l => l.emailValidation?.isValid));
+    } catch (error) {
+        console.error('Error verifying leads:', error);
+        showError('Failed to verify leads: ' + error.message);
+    } finally {
+        if (leadsSkeleton) leadsSkeleton.classList.add('hidden');
+    }
+}
+
+// Add event listener in createLeadsTable
+document.getElementById('verify-leads-button')?.addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = `
+        <div class="flex items-center space-x-2">
+            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            <span>Verifying...</span>
+        </div>
+    `;
+    verifyAndPrepareLeads(leadsData).finally(() => {
+        this.disabled = false;
+        this.innerHTML = `
+            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Verify & Create Campaign</span>
+        `;
+    });
+});
 
 function generateBasicEmail(metadata, websiteData = null) {
     const { company, contact } = metadata;
@@ -2702,25 +2753,95 @@ const campaignManager = {
         });
     },
     
+    // showCampaignModal: function() {
+    //     // Get the modal element
+    //     const modal = document.getElementById('campaign-modal');
+    //     if (!modal) return;
+        
+    //     // Reset form
+    //     const form = document.getElementById('campaign-form');
+    //     if (form) form.reset();
+        
+    //     const followUpContainer = document.getElementById('follow-up-container');
+    //     if (followUpContainer) followUpContainer.innerHTML = '';
+        
+    //     this.followUpCount = 0;
+        
+    //     // Show modal
+    //     modal.classList.remove('hidden');
+    //     document.body.classList.add('overflow-hidden');
+    // },
+    
     showCampaignModal: function() {
-        // Get the modal element
         const modal = document.getElementById('campaign-modal');
         if (!modal) return;
-        
+    
         // Reset form
         const form = document.getElementById('campaign-form');
         if (form) form.reset();
-        
         const followUpContainer = document.getElementById('follow-up-container');
         if (followUpContainer) followUpContainer.innerHTML = '';
-        
         this.followUpCount = 0;
-        
-        // Show modal
+    
+        // Populate initial email and signature
+        const initialSubject = document.querySelector('.email-subject');
+        const initialBody = document.querySelector('.email-body');
+        if (initialSubject) initialSubject.value = generateBasicEmail({ company: { name: 'Sample Company' }, contact: { firstName: 'Contact' } }).subject;
+        if (initialBody) initialBody.value = generateBasicEmail({ company: { name: 'Sample Company' }, contact: { firstName: 'Contact' } }).body + EMAIL_SIGNATURE;
+    
         modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
     },
     
+    createCampaign: function() {
+        const campaignName = document.getElementById('campaign-name')?.value;
+        const sendingAccount = document.getElementById('sending-account')?.value;
+    
+        if (!campaignName) {
+            showError('Please enter a campaign name');
+            return;
+        }
+        if (!sendingAccount) {
+            showError('Please select a sending account');
+            return;
+        }
+    
+        let leads = [];
+        const leadSource = document.getElementById('lead-source')?.value;
+        if (leadSource === 'current' && this.currentLeads.length > 0) {
+            leads = this.currentLeads;
+        } else if (leadSource === 'upload' && this.uploadedLeads && this.uploadedLeads.length > 0) {
+            leads = this.uploadedLeads;
+        } else {
+            showError('No leads available. Upload a file or use current leads.');
+            return;
+        }
+    
+        const initialSubject = document.querySelector('.email-subject')?.value || generateBasicEmail(leads[0]).subject;
+        const initialBody = document.querySelector('.email-body')?.value || generateBasicEmail(leads[0]).body + EMAIL_SIGNATURE;
+        const initialDate = document.querySelector('.email-date')?.value || new Date().toISOString().slice(0, 16);
+        const initialSpeed = document.querySelector('.email-speed')?.value || 'medium';
+    
+        const followUpEmails = [];
+        document.querySelectorAll('.follow-up-email').forEach(container => {
+            const subject = container.querySelector('.email-subject')?.value || generateFollowUpEmail(leads[0], 1).subject;
+            const body = container.querySelector('.email-body')?.value || generateFollowUpEmail(leads[0], 1).body + EMAIL_SIGNATURE;
+            const waitDuration = parseInt(container.querySelector('.wait-duration')?.value) || 1;
+            const waitUnit = container.querySelector('.wait-unit')?.value;
+            if (subject && body) {
+                followUpEmails.push({ subject, body, waitDuration, waitUnit });
+            }
+        });
+    
+        const emails = leads.map(lead => ({
+            to: lead.email,
+            subject: replacePlaceholders(initialSubject, lead),
+            body: replacePlaceholders(initialBody, lead)
+        }));
+    
+        createAndStartCampaign(leads, 'manager');
+        this.hideCampaignModal();
+    },
     hideCampaignModal: function() {
         const modal = document.getElementById('campaign-modal');
         if (modal) {
@@ -3150,49 +3271,191 @@ const campaignManager = {
     //     // this.startCampaign(campaign);
     // },
 
-    createCampaign: function() {
-        const campaignName = document.getElementById('campaign-name')?.value;
-        const sendingAccount = document.getElementById('sending-account')?.value;
+    // createCampaign: function() {
+    //     const campaignName = document.getElementById('campaign-name')?.value;
+    //     const sendingAccount = document.getElementById('sending-account')?.value;
     
-        if (!campaignName) {
-            showError('Please enter a campaign name');
-            return;
-        }
-        if (!sendingAccount) {
-            showError('Please select a sending account');
-            return;
-        }
+    //     if (!campaignName) {
+    //         showError('Please enter a campaign name');
+    //         return;
+    //     }
+    //     if (!sendingAccount) {
+    //         showError('Please select a sending account');
+    //         return;
+    //     }
     
-        let leads = [];
-        const leadSource = document.getElementById('lead-source')?.value;
-        if (leadSource === 'current' && this.currentLeads.length > 0) {
-            leads = this.currentLeads;
-        } else if (leadSource === 'upload' && this.uploadedLeads && this.uploadedLeads.length > 0) {
-            leads = this.uploadedLeads;
-        } else {
-            showError('No leads available. Upload a file or use current leads.');
-            return;
-        }
+    //     let leads = [];
+    //     const leadSource = document.getElementById('lead-source')?.value;
+    //     if (leadSource === 'current' && this.currentLeads.length > 0) {
+    //         leads = this.currentLeads;
+    //     } else if (leadSource === 'upload' && this.uploadedLeads && this.uploadedLeads.length > 0) {
+    //         leads = this.uploadedLeads;
+    //     } else {
+    //         showError('No leads available. Upload a file or use current leads.');
+    //         return;
+    //     }
     
-        const initialSubject = document.querySelector('.email-subject')?.value || generateBasicEmail(leads[0]).subject;
-        const initialBody = document.querySelector('.email-body')?.value || generateBasicEmail(leads[0]).body;
-        const initialDate = document.querySelector('.email-date')?.value || new Date().toISOString().slice(0, 16);
-        const initialSpeed = document.querySelector('.email-speed')?.value || 'medium';
+    //     const initialSubject = document.querySelector('.email-subject')?.value || generateBasicEmail(leads[0]).subject;
+    //     const initialBody = document.querySelector('.email-body')?.value || generateBasicEmail(leads[0]).body;
+    //     const initialDate = document.querySelector('.email-date')?.value || new Date().toISOString().slice(0, 16);
+    //     const initialSpeed = document.querySelector('.email-speed')?.value || 'medium';
     
-        const emails = leads.map(lead => ({
-            to: lead.email,
-            subject: replacePlaceholders(initialSubject, lead),
-            body: replacePlaceholders(initialBody, lead)
-        }));
+    //     const emails = leads.map(lead => ({
+    //         to: lead.email,
+    //         subject: replacePlaceholders(initialSubject, lead),
+    //         body: replacePlaceholders(initialBody, lead)
+    //     }));
     
-        createAndStartCampaign(leads, 'manager'); // Use centralized function
-        this.hideCampaignModal();
-    },
+    //     createAndStartCampaign(leads, 'manager'); // Use centralized function
+    //     this.hideCampaignModal();
+    // },
     
+    // viewCampaign: function(index) {
+    //     const campaign = this.campaigns[index];
+    //     if (!campaign) return;
+        
+    //     // Create and show campaign details modal
+    //     const modal = document.createElement('div');
+    //     modal.className = 'fixed inset-0 z-50 overflow-y-auto';
+    //     modal.innerHTML = `
+    //         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    //             <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+    //                 <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+    //             </div>
+                
+    //             <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full">
+    //                 <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+    //                     <div class="sm:flex sm:items-start">
+    //                         <div class="w-full">
+    //                             <div class="flex justify-between items-center mb-4">
+    //                                 <h3 class="text-xl leading-6 font-medium text-gray-900 dark:text-white">
+    //                                     Campaign Details: ${campaign.name}
+    //                                 </h3>
+    //                                 <span class="px-2 py-1 text-xs rounded-full ${this.getStatusClass(campaign.status)}">
+    //                                     ${campaign.status}
+    //                                 </span>
+    //                             </div>
+                                
+    //                             <div class="mt-2 divide-y divide-gray-200 dark:divide-gray-700">
+    //                                 <!-- Campaign Stats -->
+    //                                 <div class="py-4">
+    //                                     <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Campaign Statistics</h4>
+    //                                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    //                                         <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+    //                                             <div class="text-sm text-blue-800 dark:text-blue-200">Total Leads</div>
+    //                                             <div class="text-2xl font-bold text-blue-900 dark:text-blue-100">${campaign.leadCount}</div>
+    //                                         </div>
+    //                                         <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+    //                                             <div class="text-sm text-green-800 dark:text-green-200">Emails Sent</div>
+    //                                             <div class="text-2xl font-bold text-green-900 dark:text-green-100">${campaign.sentCount}</div>
+    //                                         </div>
+    //                                         <div class="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+    //                                             <div class="text-sm text-yellow-800 dark:text-yellow-200">Opens</div>
+    //                                             <div class="text-2xl font-bold text-yellow-900 dark:text-yellow-100">${campaign.openCount || 0}</div>
+    //                                         </div>
+    //                                         <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+    //                                             <div class="text-sm text-purple-800 dark:text-purple-200">Replies</div>
+    //                                             <div class="text-2xl font-bold text-purple-900 dark:text-purple-100">${campaign.replyCount || 0}</div>
+    //                                         </div>
+    //                                     </div>
+    //                                 </div>
+                                    
+    //                                 <!-- Campaign Emails -->
+    //                                 <div class="py-4">
+    //                                     <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Email Sequence</h4>
+                                        
+    //                                     <!-- Initial Email -->
+    //                                     <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg mb-3">
+    //                                     <div class="font-medium text-gray-900 dark:text-white mb-1">Initial Email</div>
+    //                                         <div class="text-sm text-gray-800 dark:text-gray-200 mb-1">
+    //                                             <span class="font-medium">Subject:</span> ${campaign.initialEmail.subject}
+    //                                         </div>
+    //                                         <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
+    //                                             ${campaign.initialEmail.body}
+    //                                         </div>
+    //                                         <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+    //                                             Send date: ${new Date(campaign.initialEmail.sendDate).toLocaleString()}
+    //                                         </div>
+    //                                     </div>
+                                        
+    //                                     <!-- Follow-up Emails -->
+    //                                     ${campaign.followUpEmails.map((email, i) => `
+    //                                         <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg mb-2">
+    //                                             <div class="font-medium text-gray-900 dark:text-white mb-1">Follow-up Email ${i + 1}</div>
+    //                                             <div class="text-sm text-gray-800 dark:text-gray-200 mb-1">
+    //                                                 <span class="font-medium">Subject:</span> ${email.subject}
+    //                                             </div>
+    //                                             <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
+    //                                                 ${email.body}
+    //                                             </div>
+    //                                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+    //                                                 Wait: ${email.waitDuration} ${email.waitUnit}
+    //                                             </div>
+    //                                         </div>
+    //                                     `).join('')}
+    //                                 </div>
+                                    
+    //                                 <!-- Campaign Settings -->
+    //                                 <div class="py-4">
+    //                                     <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Settings</h4>
+    //                                     <div class="grid grid-cols-2 gap-4">
+    //                                         <div class="text-sm">
+    //                                             <span class="font-medium text-gray-900 dark:text-white">Sending Account:</span>
+    //                                             <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.sendingAccount}</span>
+    //                                         </div>
+    //                                         <div class="text-sm">
+    //                                             <span class="font-medium text-gray-900 dark:text-white">Send Speed:</span>
+    //                                             <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.initialEmail.sendSpeed}</span>
+    //                                         </div>
+    //                                         <div class="text-sm">
+    //                                             <span class="font-medium text-gray-900 dark:text-white">Track Opens:</span>
+    //                                             <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.settings.trackOpens ? 'Yes' : 'No'}</span>
+    //                                         </div>
+    //                                         <div class="text-sm">
+    //                                             <span class="font-medium text-gray-900 dark:text-white">Track Clicks:</span>
+    //                                             <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.settings.trackClicks ? 'Yes' : 'No'}</span>
+    //                                         </div>
+    //                                         <div class="text-sm">
+    //                                             <span class="font-medium text-gray-900 dark:text-white">Stop on Reply:</span>
+    //                                             <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.settings.stopOnReply ? 'Yes' : 'No'}</span>
+    //                                         </div>
+    //                                         <div class="text-sm">
+    //                                             <span class="font-medium text-gray-900 dark:text-white">Stop on Click:</span>
+    //                                             <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.settings.stopOnClick ? 'Yes' : 'No'}</span>
+    //                                         </div>
+    //                                     </div>
+    //                                 </div>
+    //                             </div>
+    //                         </div>
+    //                     </div>
+    //                 </div>
+    //                 <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+    //                     <button type="button" class="close-modal w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+    //                         Close
+    //                     </button>
+    //                 </div>
+    //             </div>
+    //         </div>
+    //     `;
+        
+    //     document.body.appendChild(modal);
+        
+    //     // Add event listener to close button
+    //     modal.querySelector('.close-modal')?.addEventListener('click', () => {
+    //         modal.remove();
+    //     });
+        
+    //     // Close modal when clicking outside
+    //     modal.querySelector('.fixed.inset-0')?.addEventListener('click', (e) => {
+    //         if (e.target === modal.querySelector('.fixed.inset-0')) {
+    //             modal.remove();
+    //         }
+    //     });
+    // },
     viewCampaign: function(index) {
         const campaign = this.campaigns[index];
         if (!campaign) return;
-        
+    
         // Create and show campaign details modal
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 z-50 overflow-y-auto';
@@ -3201,7 +3464,6 @@ const campaignManager = {
                 <div class="fixed inset-0 transition-opacity" aria-hidden="true">
                     <div class="absolute inset-0 bg-black bg-opacity-50"></div>
                 </div>
-                
                 <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full">
                     <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
@@ -3214,50 +3476,39 @@ const campaignManager = {
                                         ${campaign.status}
                                     </span>
                                 </div>
-                                
                                 <div class="mt-2 divide-y divide-gray-200 dark:divide-gray-700">
-                                    <!-- Campaign Stats -->
                                     <div class="py-4">
                                         <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Campaign Statistics</h4>
                                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                            <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                            <div class="bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
                                                 <div class="text-sm text-blue-800 dark:text-blue-200">Total Leads</div>
                                                 <div class="text-2xl font-bold text-blue-900 dark:text-blue-100">${campaign.leadCount}</div>
                                             </div>
-                                            <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                                            <div class="bg-green-50 dark:bg-green-900 p-3 rounded-lg">
                                                 <div class="text-sm text-green-800 dark:text-green-200">Emails Sent</div>
                                                 <div class="text-2xl font-bold text-green-900 dark:text-green-100">${campaign.sentCount}</div>
                                             </div>
-                                            <div class="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+                                            <div class="bg-yellow-50 dark:bg-yellow-900 p-3 rounded-lg">
                                                 <div class="text-sm text-yellow-800 dark:text-yellow-200">Opens</div>
                                                 <div class="text-2xl font-bold text-yellow-900 dark:text-yellow-100">${campaign.openCount || 0}</div>
                                             </div>
-                                            <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+                                            <div class="bg-purple-50 dark:bg-purple-900 p-3 rounded-lg">
                                                 <div class="text-sm text-purple-800 dark:text-purple-200">Replies</div>
                                                 <div class="text-2xl font-bold text-purple-900 dark:text-purple-100">${campaign.replyCount || 0}</div>
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Campaign Emails -->
                                     <div class="py-4">
                                         <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Email Sequence</h4>
-                                        
-                                        <!-- Initial Email -->
                                         <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg mb-3">
-                                        <div class="font-medium text-gray-900 dark:text-white mb-1">Initial Email</div>
+                                            <div class="font-medium text-gray-900 dark:text-white mb-1">Initial Email</div>
                                             <div class="text-sm text-gray-800 dark:text-gray-200 mb-1">
                                                 <span class="font-medium">Subject:</span> ${campaign.initialEmail.subject}
                                             </div>
                                             <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
                                                 ${campaign.initialEmail.body}
                                             </div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                                Send date: ${new Date(campaign.initialEmail.sendDate).toLocaleString()}
-                                            </div>
                                         </div>
-                                        
-                                        <!-- Follow-up Emails -->
                                         ${campaign.followUpEmails.map((email, i) => `
                                             <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg mb-2">
                                                 <div class="font-medium text-gray-900 dark:text-white mb-1">Follow-up Email ${i + 1}</div>
@@ -3267,42 +3518,8 @@ const campaignManager = {
                                                 <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
                                                     ${email.body}
                                                 </div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                                    Wait: ${email.waitDuration} ${email.waitUnit}
-                                                </div>
                                             </div>
                                         `).join('')}
-                                    </div>
-                                    
-                                    <!-- Campaign Settings -->
-                                    <div class="py-4">
-                                        <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Settings</h4>
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <div class="text-sm">
-                                                <span class="font-medium text-gray-900 dark:text-white">Sending Account:</span>
-                                                <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.sendingAccount}</span>
-                                            </div>
-                                            <div class="text-sm">
-                                                <span class="font-medium text-gray-900 dark:text-white">Send Speed:</span>
-                                                <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.initialEmail.sendSpeed}</span>
-                                            </div>
-                                            <div class="text-sm">
-                                                <span class="font-medium text-gray-900 dark:text-white">Track Opens:</span>
-                                                <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.settings.trackOpens ? 'Yes' : 'No'}</span>
-                                            </div>
-                                            <div class="text-sm">
-                                                <span class="font-medium text-gray-900 dark:text-white">Track Clicks:</span>
-                                                <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.settings.trackClicks ? 'Yes' : 'No'}</span>
-                                            </div>
-                                            <div class="text-sm">
-                                                <span class="font-medium text-gray-900 dark:text-white">Stop on Reply:</span>
-                                                <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.settings.stopOnReply ? 'Yes' : 'No'}</span>
-                                            </div>
-                                            <div class="text-sm">
-                                                <span class="font-medium text-gray-900 dark:text-white">Stop on Click:</span>
-                                                <span class="text-gray-600 dark:text-gray-300 ml-2">${campaign.settings.stopOnClick ? 'Yes' : 'No'}</span>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -3316,22 +3533,13 @@ const campaignManager = {
                 </div>
             </div>
         `;
-        
         document.body.appendChild(modal);
-        
-        // Add event listener to close button
-        modal.querySelector('.close-modal')?.addEventListener('click', () => {
-            modal.remove();
-        });
-        
-        // Close modal when clicking outside
-        modal.querySelector('.fixed.inset-0')?.addEventListener('click', (e) => {
-            if (e.target === modal.querySelector('.fixed.inset-0')) {
-                modal.remove();
-            }
+    
+        modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+        modal.querySelector('.fixed.inset-0').addEventListener('click', (e) => {
+            if (e.target === modal.querySelector('.fixed.inset-0')) modal.remove();
         });
     },
-    
     pauseCampaign: function(index) {
         // Update campaign status
         this.campaigns[index].status = 'Paused';
