@@ -796,7 +796,7 @@ const EMAIL_SIGNATURE = `
     <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 12px; color: #333; width: 100%; max-width: 400px;">
         <tr>
             <td style="padding-right: 15px; vertical-align: top; width: 100px;">
-                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block;">
+                <img src="https://syneticslz.github.io/pupetteer/logo.png">
             </td>
             <td style="vertical-align: top;">
                 <strong>Sapna Ravula</strong><br>
