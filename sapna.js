@@ -811,18 +811,18 @@ async function startCampaign(leadsData) {
 
 const EMAIL_SIGNATURE = `
     <br><br>
-    <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 12px; color: #333; width: 100%; max-width: 400px; border-collapse: collapse;">
+    <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 12px; color: #ffffff; width: 100%; max-width: 400px; border-collapse: collapse; background-color: #2d3748; padding: 5px; table-layout: fixed;">
         <tr>
             <td style="padding-right: 15px; vertical-align: top; width: 100px;">
-                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block; max-width: 100%; height: auto;">
+                <img src="https://syneticslz.github.io/pupetteer/logo.png" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block; max-width: 100%; height: auto; border: none;">
             </td>
-            <td style="vertical-align: top; word-break: break-word;">
+            <td style="vertical-align: top; word-break: break-word; line-height: 1.5;">
                 <strong>Sapna Ravula</strong><br>
                 Cebron Group<br>
                 Investment Banking - Healthcare M&A<br>
                 Phone: +1-123-456-7890<br>
-                Email: <a href="mailto:sapna.ravula@cebrongroup.com" style="color: #007BFF; text-decoration: none;">sapna.ravula@cebrongroup.com</a><br>
-                Website: <a href="https://www.cebrongroup.com" style="color: #007BFF; text-decoration: none;">www.cebrongroup.com</a>
+                Email: <a href="mailto:sapna.ravula@cebrongroup.com" style="color: #63b3ed; text-decoration: none;">sapna.ravula@cebrongroup.com</a><br>
+                Website: <a href="https://www.cebrongroup.com" style="color: #63b3ed; text-decoration: none;">www.cebrongroup.com</a>
             </td>
         </tr>
     </table>
