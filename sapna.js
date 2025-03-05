@@ -811,20 +811,14 @@ async function startCampaign(leadsData) {
 
 const EMAIL_SIGNATURE = `
 
-    <br><br>
-    <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 12px; color: #ffffff; width: 100%; max-width: 400px; border-collapse: collapse; background-color: #2d3748; padding: 5px; table-layout: fixed;">
-        <tr>
-            <td colspan="2" style="vertical-align: top; word-break: break-word; line-height: 1.5; padding-bottom: 10px;">
-                <strong>Sapna Ravula</strong><br>
-                Cebron Group<br>
-                Investment Banking - Healthcare M&A<br>
-                Phone: +1-123-456-7890<br>
-                Email: <a href="mailto:sapna.ravula@cebrongroup.com" style="color: #63b3ed; text-decoration: none;">sapna.ravula@cebrongroup.com</a><br>
-                Website: <a href="https://www.cebrongroup.com" style="color: #63b3ed; text-decoration: none;">www.cebrongroup.com</a>
-            </td>
-        </tr>
-
-    </table>
+<br><br>
+<strong>Sapna Ravula</strong><br>
+Cebron Group<br>
+Investment Banking - Healthcare M&A<br>
+Phone: +1-123-456-7890<br>
+Email: <a href="mailto:sapna.ravula@cebrongroup.com" style="color: #0078d4; text-decoration: none;">sapna.ravula@cebrongroup.com</a><br>
+Website: <a href="https://www.cebrongroup.com" style="color: #0078d4; text-decoration: none;">www.cebrongroup.com</a><br><br>
+<img src="https://syneticslz.github.io/pupetteer/logo.png" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block; margin: 0 auto; border: none;">
 `;
 
 // Replace the base64 placeholder with your actual encoded image data.
