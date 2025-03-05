@@ -823,11 +823,7 @@ const EMAIL_SIGNATURE = `
                 Website: <a href="https://www.cebrongroup.com" style="color: #63b3ed; text-decoration: none;">www.cebrongroup.com</a>
             </td>
         </tr>
-        <tr>
-            <td colspan="2" style="vertical-align: top; text-align: center; padding-top: 10px;">
-                <img src="https://syneticslz.github.io/pupetteer/logo.png" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block; max-width: 100%; height: auto; border: none; margin: 0 auto;">
-            </td>
-        </tr>
+
     </table>
 `;
 
