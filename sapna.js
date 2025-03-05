@@ -495,7 +495,7 @@ document.getElementById('start-campaign')?.addEventListener('click', async funct
 
     try {
         await createAndStartCampaign(data); // Await the async function
-        showToast('Campaign processing completed!', 'success');
+        // showToast('Campaign processing completed!', 'success');
     } catch (error) {
         console.error('Error starting campaign:', error);
         showError('Failed to start campaign: ' + error.message);
