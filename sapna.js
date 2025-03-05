@@ -481,17 +481,36 @@ function createLeadsTable(data) {
         //     startCampaign(data);
         // });
 
-        document.getElementById('start-campaign')?.addEventListener('click', function() {
-            this.disabled = true;
-            this.innerHTML = `
-                <div class="flex items-center space-x-2">
-                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Processing...</span>
-                </div>
-            `;
-            this.className += ' opacity-75 cursor-not-allowed';
-            createAndStartCampaign(data); // Use centralized function
-        });
+// Inside createLeadsTable, update the event listener
+document.getElementById('start-campaign')?.addEventListener('click', async function() {
+    const button = this; // Store reference to the button
+    button.disabled = true;
+    button.innerHTML = `
+        <div class="flex items-center space-x-2">
+            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            <span>Processing...</span>
+        </div>
+    `;
+    button.className += ' opacity-75 cursor-not-allowed';
+
+    try {
+        await createAndStartCampaign(data); // Await the async function
+        showToast('Campaign processing completed!', 'success');
+    } catch (error) {
+        console.error('Error starting campaign:', error);
+        showError('Failed to start campaign: ' + error.message);
+    } finally {
+        // Reset button state
+        button.disabled = false;
+        button.innerHTML = `
+            <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span>Process Leads</span>
+        `;
+        button.className = button.className.replace(' opacity-75 cursor-not-allowed', ''); // Remove added classes
+    }
+});
 
         document.getElementById('verify-leads-button')?.addEventListener('click', function() {
             verifyAndPrepareLeads(data);
