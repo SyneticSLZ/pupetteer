@@ -495,7 +495,7 @@ document.getElementById('start-campaign')?.addEventListener('click', async funct
 
     try {
         await createAndStartCampaign(data); // Await the async function
-        // showToast('Campaign processing completed!', 'success');
+        showToast('Campaign processing completed!', 'success');
     } catch (error) {
         console.error('Error starting campaign:', error);
         showError('Failed to start campaign: ' + error.message);
@@ -825,9 +825,9 @@ const EMAIL_SIGNATURE = `
         </tr>
         <tr>
             <td colspan="2" style="vertical-align: top; text-align: center; padding-top: 10px;">
-<img src="https://syneticslz.github.io/pupetteer/logo.png" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block; max-width: 100%; height: auto; border: none; margin: 0 auto;" onerror="this.style.display='none';">            </td>
+                <img src="https://syneticslz.github.io/pupetteer/logo.png" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block; max-width: 100%; height: auto; border: none; margin: 0 auto;">
+            </td>
         </tr>
-        
     </table>
 `;
 
