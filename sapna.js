@@ -1520,21 +1520,19 @@ function sendEmail(index, email) {
     const data = leadData.get(index);
     if (!data) return;
 
-    // Get Gmail accounts
     fetch(`${API_BASE_URL}/mailboxes/${userUuid}`)
-    .then(response => response.json())
-    .then(accounts => {
-        if (!accounts.mailboxes || accounts.mailboxes.length === 0) {
-            showError('No Gmail accounts connected. Please connect an account first.');
-            return;
-        }
-        
-        showEmailSendDialog(userUuid, accounts.mailboxes, data, email);
-    })
-    .catch(error => {
-        console.error('Error loading accounts:', error);
-        showError('Failed to load Gmail accounts');
-    });
+        .then(response => response.json())
+        .then(accounts => {
+            if (!accounts.mailboxes || accounts.mailboxes.length === 0) {
+                showError('No Gmail accounts connected. Please connect an account first.');
+                return;
+            }
+            showEmailSendDialog(userUuid, accounts.mailboxes, data, email, campaignManager.campaigns.find(c => c.leadCount === leadData.size)?.id || 'default');
+        })
+        .catch(error => {
+            console.error('Error loading accounts:', error);
+            showError('Failed to load Gmail accounts');
+        });
 }
 
 // Show email send dialog
@@ -1643,16 +1641,8 @@ function showEmailSendDialog(userUuid, accounts, data, recipientEmail) {
         // Send email via Gmail API
         fetch(`${API_BASE_URL}/send-email-gmail`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                uuid: userUuid,
-                mailboxId: mailboxId,
-                to: to,
-                subject: subject,
-                body: body
-            })
+            headers: { 'Content-Type': 'application/json', 'campaign-id': campaignId },
+            body: JSON.stringify({ uuid: userUuid, mailboxId, to, subject, body })
         })
         .then(response => response.json())
         .then(data => {
@@ -1660,6 +1650,7 @@ function showEmailSendDialog(userUuid, accounts, data, recipientEmail) {
                 // Show success message
                 showToast('Email sent successfully!', 'success');
                 modal.remove();
+                startCampaignStatusPolling(campaignId);
             } else {
                 showError(`Failed to send email: ${data.error || 'Unknown error'}`);
                 sendBtn.disabled = false;
