@@ -390,14 +390,14 @@ function createLeadsTable(data) {
                     </div>
                 </div>
                 <div class="flex space-x-2">
-                    <button id="verify-leads-button" 
-                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 
-                                   transition-colors flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>Verify & Create Campaign</span>
-                    </button>
+                             <button id="verify-leads-button" style="display: none;"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 
+                   transition-colors flex items-center">
+        <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Verify & Create Campaign</span>
+    </button>
                     <button id="start-campaign" 
                             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
                                    transition-colors flex items-center">
