@@ -618,7 +618,7 @@ const EMAIL_SIGNATURE = `
     <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 12px; color: #333;">
         <tr>
             <td style="padding-right: 15px; vertical-align: top;">
-                <img src="https://example.com/entelmedlifeline-logo.png" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block;">
+                <img src="https://syneticslz.github.io/pupetteer/logo.png" alt="EntelMedLifeLine Logo" width="100" height="50" style="display: block;">
             </td>
             <td style="vertical-align: top;">
                 <strong>Sapna Ravula</strong><br>
@@ -956,8 +956,7 @@ Our approach includes:
 
 If you are considering selling your business${company.name ? `, ${company.name}` : ''}, I would be glad to discuss how Cebron can deliver value and secure the best outcome for you. Please let me know if you are available for a 10-minute call.
 
-Sapna Ravula
-Cebron Group`;
+${EMAIL_SIGNATURE}`;
 
     return {
         subject,
@@ -997,8 +996,7 @@ We specialize in designing tailored strategies based on your company's unique st
 
 If you’re interested in exploring this further, I’d be happy to discuss a more detailed plan during a brief call.
 
-Sapna Ravula
-Cebron Group`;
+${EMAIL_SIGNATURE}`;
             break;
 
         case 2:
@@ -1011,8 +1009,7 @@ By preparing your business${company.name ? `, ${company.name},` : ''} thoroughly
 
 If you would like to explore this process in more depth, please let me know when you’re available for a 10-minute call.
 
-Sapna Ravula
-Cebron Group`;
+${EMAIL_SIGNATURE}`;
             break;
 
         case 3:
@@ -1025,8 +1022,7 @@ Our team combines sector-specific insights with financial expertise, providing c
 
 If you are interested in discussing our approach and how it can benefit your business, please let me know your availability for a brief call.
 
-Sapna Ravula
-Cebron Group`;
+${EMAIL_SIGNATURE}`;
             break;
 
         default:
@@ -1035,8 +1031,7 @@ Cebron Group`;
 
 Just checking in regarding our previous discussions about supporting ${company.name || 'your business'} through the sale process. Please let me know if you’d like to connect for a quick call.
 
-Sapna Ravula
-Cebron Group`;
+${EMAIL_SIGNATURE}`;
     }
 
     return {
