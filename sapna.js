@@ -3473,11 +3473,7 @@ const campaignManager = {
         modal.innerHTML = `
             <div class="relative bg-white dark:bg-gray-800 rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle max-w-4xl w-full mx-auto">
                 <!-- Close Button -->
-                <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 close-modal" aria-label="Close">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                
                 <div class="p-6">
                     <div class="sm:flex sm:items-start">
                         <div class="w-full">
@@ -3488,6 +3484,11 @@ const campaignManager = {
                                 <span class="px-2 py-1 text-xs rounded-full ${this.getStatusClass(campaign.status)}">
                                     ${campaign.status}
                                 </span>
+                                <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 close-modal" aria-label="Close">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
                             </div>
                             <div class="mt-2 divide-y divide-gray-200 dark:divide-gray-700 max-h-[70vh] overflow-y-auto">
                                 <div class="py-4">
