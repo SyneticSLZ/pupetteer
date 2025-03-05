@@ -1186,6 +1186,8 @@ Our approach includes:
 
 If you are considering selling your business${company.name ? `, ${company.name}` : ''}, I would be glad to discuss how Cebron can deliver value and secure the best outcome for you. Please let me know if you are available for a 10-minute call.
 
+Sapna Ravula 
+Cebron Group 
 ${EMAIL_SIGNATURE}`;
 
     return {
