@@ -1228,6 +1228,8 @@ We specialize in designing tailored strategies based on your company's unique st
 
 If you’re interested in exploring this further, I’d be happy to discuss a more detailed plan during a brief call.
 
+Sapna Ravula 
+Cebron Group 
 ${EMAIL_SIGNATURE}`;
             break;
 
@@ -1241,6 +1243,8 @@ By preparing your business${company.name ? `, ${company.name},` : ''} thoroughly
 
 If you would like to explore this process in more depth, please let me know when you’re available for a 10-minute call.
 
+Sapna Ravula 
+Cebron Group 
 ${EMAIL_SIGNATURE}`;
             break;
 
@@ -1254,6 +1258,8 @@ Our team combines sector-specific insights with financial expertise, providing c
 
 If you are interested in discussing our approach and how it can benefit your business, please let me know your availability for a brief call.
 
+Sapna Ravula 
+Cebron Group 
 ${EMAIL_SIGNATURE}`;
             break;
 
@@ -1263,6 +1269,8 @@ ${EMAIL_SIGNATURE}`;
 
 Just checking in regarding our previous discussions about supporting ${company.name || 'your business'} through the sale process. Please let me know if you’d like to connect for a quick call.
 
+Sapna Ravula 
+Cebron Group 
 ${EMAIL_SIGNATURE}`;
     }
 
