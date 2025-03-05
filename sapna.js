@@ -503,6 +503,8 @@ function createLeadsTable(data) {
     }
 }
 
+
+
 async function createAndStartCampaign(leadsData, source = 'upload') {
     if (!leadsData || !leadsData.length) {
         showError('No leads data provided');
@@ -560,6 +562,8 @@ async function createAndStartCampaign(leadsData, source = 'upload') {
 
     // Schedule campaign
     try {
+
+
         const response = await fetch(`${API_BASE_URL}/campaign/schedule`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -579,17 +583,18 @@ async function createAndStartCampaign(leadsData, source = 'upload') {
                 }))
             })
         });
-
+    
         const result = await response.json();
         if (result.success) {
+            const campaignId = result.campaignId;
             const campaign = {
-                id: result.campaignId,
+                id: campaignId,
                 name: campaignName,
                 sendingAccount: mailboxId,
                 initialEmail: { subject: emails[0].subject, body: emails[0].body },
                 followUpEmails: followUps.map(f => generateFollowUpEmail(emails[0].metadata, f.sequenceNumber)),
                 leadCount: emails.length,
-                sentCount: 0, // Will update via polling
+                sentCount: 0,
                 status: 'Scheduled',
                 createdAt: new Date().toISOString(),
                 nextFollowUp: new Date().toISOString()
@@ -598,12 +603,26 @@ async function createAndStartCampaign(leadsData, source = 'upload') {
             localStorage.setItem('campaigns', JSON.stringify(campaignManager.campaigns));
             campaignManager.renderCampaignsList();
             showToast(`Campaign "${campaignName}" scheduled successfully!`, 'success');
-
-            // Start polling for status updates
-            startCampaignStatusPolling(campaign.id);
+    
+            // Trigger initial send with campaignId
+            await fetch(`${API_BASE_URL}/campaign/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'campaign-id': campaignId },
+                body: JSON.stringify({
+                    uuid: userUuid,
+                    mailboxId,
+                    emails,
+                    campaignName,
+                    sendInterval: 60
+                })
+            });
+            startCampaignStatusPolling(campaignId);
         } else {
             throw new Error(result.error);
         }
+
+
+
     } catch (error) {
         console.error('Error scheduling campaign:', error);
         showError('Failed to schedule campaign: ' + error.message);
