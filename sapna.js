@@ -515,6 +515,24 @@ document.getElementById('start-campaign')?.addEventListener('click', async funct
         // document.getElementById('verify-leads-button')?.addEventListener('click', function() {
         //     verifyAndPrepareLeads(data);
         // });
+        document.getElementById('verify-leads-button')?.addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Verifying...</span>
+                </div>
+            `;
+            verifyAndPrepareLeads(data).finally(() => {
+                this.disabled = false;
+                this.innerHTML = `
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Verify & Create Campaign</span>
+                `;
+            });
+        });
 
     } catch (error) {
         console.error('Error creating table:', error);
@@ -1149,24 +1167,7 @@ async function verifyAndPrepareLeads(leadsData) {
 }
 
 // Add event listener in createLeadsTable
-document.getElementById('verify-leads-button')?.addEventListener('click', function() {
-    this.disabled = true;
-    this.innerHTML = `
-        <div class="flex items-center space-x-2">
-            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            <span>Verifying...</span>
-        </div>
-    `;
-    verifyAndPrepareLeads(leadsData).finally(() => {
-        this.disabled = false;
-        this.innerHTML = `
-            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>Verify & Create Campaign</span>
-        `;
-    });
-});
+
 
 function generateBasicEmail(metadata, websiteData = null) {
     const { company, contact } = metadata;
